@@ -1,11 +1,10 @@
-// components/navbar.tsx
-'use client';
+"use client"
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, LogOut } from 'lucide-react';
-import { useAuth } from '@/components/auth-context';
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { ChevronDown, LogOut } from "lucide-react"
+import { useAuth } from "@/components/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,33 +12,36 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu"
 
 export function Navbar() {
-  const { user, authenticated, logout } = useAuth();
-  const pathname = usePathname();
+  const { user, authenticated, logout } = useAuth()
+  const pathname = usePathname()
 
   const handleLogout = async () => {
-    await logout();
-  };
+    await logout()
+  }
 
-  // Hide navbar if path starts with /dashboard, /loans, or /payments
-  const shouldHideNavbar = pathname?.startsWith('/dashboard') || 
-                          pathname?.startsWith('/loans') || 
-                          pathname?.startsWith('/lender') || 
-                          pathname?.startsWith('/payments');
+  const shouldHideNavbar =
+    pathname?.startsWith("/dashboard") ||
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/lender") ||
+    pathname?.startsWith("/loan-officer") ||
+    pathname?.startsWith("/payments")
 
   if (shouldHideNavbar) {
-    return null;
+    return null
   }
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-border">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="font-bold text-2xl text-primary leading-tight">
-          LOAN<br />HUB
+          LOAN
+          <br />
+          HUB
         </Link>
-        
+
         <div className="hidden md:flex items-center gap-8">
           <Link href="/" className="text-foreground hover:text-primary text-sm">
             Home
@@ -63,19 +65,14 @@ export function Navbar() {
             Help Center
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <Button className="bg-primary text-white hover:bg-primary/90 rounded-full px-6">
-            Get the App
-          </Button>
-          
+          <Button className="bg-primary text-white hover:bg-primary/90 rounded-full px-6">Get the App</Button>
+
           {authenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary hover:text-white rounded-full bg-transparent"
-                >
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white rounded-full bg-transparent">
                   {user.first_name} {user.last_name}
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
@@ -101,10 +98,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <Button
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary hover:text-white rounded-full bg-transparent"
-              >
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white rounded-full bg-transparent">
                 Login
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
@@ -113,5 +107,5 @@ export function Navbar() {
         </div>
       </div>
     </nav>
-  );
+  )
 }

@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '');
     console.log('[Next.js] Token length:', token.length);
+      console.log('[Next.js] Token length:', token);
 
     // Get FormData from request (this includes files)
     const formData = await request.formData();

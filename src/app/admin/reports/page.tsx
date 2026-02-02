@@ -1,34 +1,34 @@
-'use client';
+"use client"
 
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth-context';
-import { SidebarNav } from '@/components/sidebar-nav';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Download } from 'lucide-react';
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-context"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Download } from "lucide-react"
+import { AdminSidebar } from "@/components/admin/admin-sidebar"
 
 export default function AdminReportsPage() {
-  const router = useRouter();
-  const { authenticated, loading, user } = useAuth();
+  const router = useRouter()
+  const { authenticated, loading, user } = useAuth()
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
 
-  if (!authenticated || user?.role !== 'admin') {
-    router.push('/dashboard');
-    return null;
+  if (!authenticated || user?.role !== "admin") {
+    router.push("/dashboard")
+    return null
   }
 
   const handleDownloadReport = (type: string) => {
     // In a real application, this would generate and download a report
-    console.log('Downloading report:', type);
-  };
+    console.log("Downloading report:", type)
+  }
 
   return (
     <div className="flex">
-      <SidebarNav />
+      <AdminSidebar />
       <main className="flex-1 ml-64 bg-background min-h-screen">
         <header className="border-b border-border bg-card sticky top-0 z-40">
           <div className="px-8 py-6">
@@ -104,12 +104,7 @@ export default function AdminReportsPage() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold">Loans by Type</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownloadReport('loans-by-type')}
-                    className="gap-1"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport("loans-by-type")} className="gap-1">
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
@@ -141,12 +136,7 @@ export default function AdminReportsPage() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold">New User Registrations</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownloadReport('new-users')}
-                    className="gap-1"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport("new-users")} className="gap-1">
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
@@ -177,12 +167,7 @@ export default function AdminReportsPage() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold">Revenue Analysis</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownloadReport('financial')}
-                    className="gap-1"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport("financial")} className="gap-1">
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
@@ -194,5 +179,5 @@ export default function AdminReportsPage() {
         </div>
       </main>
     </div>
-  );
+  )
 }

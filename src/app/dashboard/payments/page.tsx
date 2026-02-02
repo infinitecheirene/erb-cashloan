@@ -1,141 +1,143 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/components/auth-context';
-import { BorrowerSidebar } from '@/components/borrower-sidebar';
-import { PaymentModal } from '@/components/payment-modal';
-import { AlertCircle, CheckCircle2, Clock, CreditCard, DollarSign, Calendar } from 'lucide-react';
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/components/auth-context"
+import { PaymentModal } from "@/components/payment-modal"
+import { AlertCircle, CheckCircle2, Clock, CreditCard, DollarSign, Calendar } from "lucide-react"
+import { BorrowerSidebar } from "@/components/borrower/borrower-sidebar"
 
 interface Payment {
-  id: number;
-  amount: string;
-  due_date: string;
-  status: string;
-  loan?: { 
-    loan_number: string;
-    id: number;
-  };
+  id: number
+  amount: string
+  due_date: string
+  status: string
+  loan?: {
+    loan_number: string
+    id: number
+  }
 }
 
 interface Loan {
-  id: number;
-  loan_number: string;
-  type: string;
-  amount: string;
-  principal_amount?: string;
-  outstanding_balance?: string;
-  monthly_payment?: string;
-  interest_rate: string;
-  term_months: number;
-  status: string;
-  next_payment_date?: string;
-  next_payment_amount?: string;
+  id: number
+  loan_number: string
+  type: string
+  amount: string
+  principal_amount?: string
+  outstanding_balance?: string
+  monthly_payment?: string
+  interest_rate: string
+  term_months: number
+  status: string
+  next_payment_date?: string
+  next_payment_amount?: string
 }
 
 export default function PaymentsPage() {
-  const router = useRouter();
-  const { user, authenticated, loading: authLoading } = useAuth();
-  const [upcomingPayments, setUpcomingPayments] = useState<Payment[]>([]);
-  const [overduePayments, setOverduePayments] = useState<Payment[]>([]);
-  const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const router = useRouter()
+  const { user, authenticated, loading: authLoading } = useAuth()
+  const [upcomingPayments, setUpcomingPayments] = useState<Payment[]>([])
+  const [overduePayments, setOverduePayments] = useState<Payment[]>([])
+  const [activeLoans, setActiveLoans] = useState<Loan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token")
+
       // Fetch scheduled payments
       const [upcomingRes, overdueRes, loansRes] = await Promise.all([
-        fetch('/api/payments?type=upcoming', {
-          headers: { 'Authorization': `Bearer ${token}` },
+        fetch("/api/payments?type=upcoming", {
+          headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch('/api/payments?type=overdue', {
-          headers: { 'Authorization': `Bearer ${token}` },
+        fetch("/api/payments?type=overdue", {
+          headers: { Authorization: `Bearer ${token}` },
         }),
         // Fetch active loans
-        fetch('/api/loans', {
-          headers: { 'Authorization': `Bearer ${token}` },
+        fetch("/api/loans", {
+          headers: { Authorization: `Bearer ${token}` },
         }),
-      ]);
+      ])
 
       if (!upcomingRes.ok || !overdueRes.ok) {
-        throw new Error('Failed to fetch payments');
+        throw new Error("Failed to fetch payments")
       }
 
-      const upcoming = await upcomingRes.json();
-      const overdue = await overdueRes.json();
-      
-      setUpcomingPayments(upcoming.payments?.data || upcoming.data || []);
-      setOverduePayments(overdue.payments?.data || overdue.data || []);
+      const upcoming = await upcomingRes.json()
+      const overdue = await overdueRes.json()
 
-      // Filter active loans
+      // Directly extract the array from Laravel paginated response
+      setUpcomingPayments(Array.isArray(upcoming.payments?.data) ? upcoming.payments.data : [])
+      setOverduePayments(Array.isArray(overdue.payments?.data) ? overdue.payments.data : [])
+
+      // Active loans
       if (loansRes.ok) {
-        const loansData = await loansRes.json();
-        const loans = Array.isArray(loansData.loans) ? loansData.loans : [];
-        const active = loans.filter((loan: Loan) => loan.status === 'active');
-        setActiveLoans(active);
+        const loansData = await loansRes.json()
+        const loans = Array.isArray(loansData.loans) ? loansData.loans : []
+        const active = loans.filter((loan: Loan) => loan.status === "active")
+        setActiveLoans(active)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load payments');
+      setError(err instanceof Error ? err.message : "Failed to load payments")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (!authenticated && !authLoading) {
-      router.push('/');
-      return;
+      router.push("/")
+      return
     }
 
     if (authenticated) {
-      fetchPayments();
+      fetchPayments()
     }
-  }, [authenticated, authLoading, router]);
+  }, [authenticated, authLoading, router])
 
   const handlePayClick = (payment: Payment) => {
-    setSelectedPayment(payment);
-    setPaymentModalOpen(true);
-  };
+    setSelectedPayment(payment)
+    setPaymentModalOpen(true)
+  }
 
   const handleMakePaymentForLoan = (loan: Loan) => {
     // Calculate monthly payment
-    const monthlyPayment = loan.monthly_payment || 
-      loan.next_payment_amount || 
-      (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2);
+    const monthlyPayment =
+      loan.monthly_payment ||
+      loan.next_payment_amount ||
+      (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2)
 
     // Create a payment object from the loan
     const payment: Payment = {
       id: loan.id,
       amount: monthlyPayment,
       due_date: loan.next_payment_date || new Date().toISOString(),
-      status: 'pending',
+      status: "pending",
       loan: {
         loan_number: loan.loan_number,
         id: loan.id,
-      }
-    };
+      },
+    }
 
-    setSelectedPayment(payment);
-    setPaymentModalOpen(true);
-  };
+    setSelectedPayment(payment)
+    setPaymentModalOpen(true)
+  }
 
   const handlePaymentSuccess = () => {
     // Refresh the payments list
-    setLoading(true);
-    fetchPayments();
-  };
+    setLoading(true)
+    fetchPayments()
+  }
 
   if (authLoading || loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
 
   return (
@@ -147,13 +149,11 @@ export default function PaymentsPage() {
       <div className="flex-1 lg:ml-0">
         {/* Add padding for mobile header */}
         <div className="lg:hidden h-16" />
-        
+
         <header className="border-b border-border bg-card">
           <div className="px-4 sm:px-6 py-4">
             <h2 className="text-xl font-semibold">Payments</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage your loan payments
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Manage your loan payments</p>
           </div>
         </header>
 
@@ -172,20 +172,17 @@ export default function PaymentsPage() {
               <TabsTrigger value="active" className="gap-2">
                 <CreditCard className="h-4 w-4" />
                 <span className="hidden sm:inline">Active Loans</span>
-                <span className="sm:hidden">Active</span>
-                ({activeLoans.length})
+                <span className="sm:hidden">Active</span>({activeLoans.length})
               </TabsTrigger>
               <TabsTrigger value="upcoming" className="gap-2">
                 <Clock className="h-4 w-4" />
                 <span className="hidden sm:inline">Upcoming</span>
-                <span className="sm:hidden">Up</span>
-                ({upcomingPayments.length})
+                <span className="sm:hidden">Up</span>({upcomingPayments.length})
               </TabsTrigger>
               <TabsTrigger value="overdue" className="gap-2">
                 <AlertCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Overdue</span>
-                <span className="sm:hidden">Over</span>
-                ({overduePayments.length})
+                <span className="sm:hidden">Over</span>({overduePayments.length})
               </TabsTrigger>
             </TabsList>
 
@@ -195,26 +192,23 @@ export default function PaymentsPage() {
                 <Card className="p-8 text-center">
                   <CheckCircle2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Active Loans</h3>
-                  <p className="text-muted-foreground">You don't have any active loans at the moment.</p>
+                  <p className="text-muted-foreground">You don&apos;t have any active loans at the moment.</p>
                 </Card>
               ) : (
                 <div className="space-y-4">
                   {activeLoans.map((loan) => {
-                    const monthlyPayment = loan.monthly_payment || 
-                      loan.next_payment_amount || 
-                      (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2);
+                    const monthlyPayment =
+                      loan.monthly_payment ||
+                      loan.next_payment_amount ||
+                      (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2)
 
                     return (
                       <Card key={loan.id} className="p-4 sm:p-6 border-green-200 bg-green-50/30">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <Badge className="bg-green-100 text-green-800 border-green-300">
-                                Active
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                Loan {loan.loan_number}
-                              </span>
+                              <Badge className="bg-green-100 text-green-800 border-green-300">Active</Badge>
+                              <span className="text-sm text-muted-foreground">Loan {loan.loan_number}</span>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
@@ -223,9 +217,10 @@ export default function PaymentsPage() {
                                 <div>
                                   <p className="text-xs text-muted-foreground">Monthly Payment</p>
                                   <p className="font-semibold text-lg">
-                                    ₱{parseFloat(monthlyPayment).toLocaleString('en-US', { 
+                                    ₱
+                                    {parseFloat(monthlyPayment).toLocaleString("en-US", {
                                       minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2 
+                                      maximumFractionDigits: 2,
                                     })}
                                   </p>
                                 </div>
@@ -236,8 +231,9 @@ export default function PaymentsPage() {
                                 <div>
                                   <p className="text-xs text-muted-foreground">Outstanding Balance</p>
                                   <p className="font-medium">
-                                    ₱{parseFloat(loan.outstanding_balance || loan.amount).toLocaleString('en-US', { 
-                                      minimumFractionDigits: 2 
+                                    ₱
+                                    {parseFloat(loan.outstanding_balance || loan.amount).toLocaleString("en-US", {
+                                      minimumFractionDigits: 2,
                                     })}
                                   </p>
                                 </div>
@@ -254,25 +250,23 @@ export default function PaymentsPage() {
 
                             {loan.next_payment_date && (
                               <p className="text-sm text-muted-foreground">
-                                Next payment due: {new Date(loan.next_payment_date).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
+                                Next payment due:{" "}
+                                {new Date(loan.next_payment_date).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
                                 })}
                               </p>
                             )}
                           </div>
 
-                          <Button 
-                            className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-                            onClick={() => handleMakePaymentForLoan(loan)}
-                          >
+                          <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700" onClick={() => handleMakePaymentForLoan(loan)}>
                             <CreditCard className="h-4 w-4 mr-2" />
                             Make Payment
                           </Button>
                         </div>
                       </Card>
-                    );
+                    )
                   })}
                 </div>
               )}
@@ -284,7 +278,7 @@ export default function PaymentsPage() {
                 <Card className="p-8 text-center">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Upcoming Payments</h3>
-                  <p className="text-muted-foreground">You're all caught up!</p>
+                  <p className="text-muted-foreground">You&apos;re all caught up!</p>
                 </Card>
               ) : (
                 <div className="space-y-4">
@@ -294,20 +288,18 @@ export default function PaymentsPage() {
                         <div className="flex-1">
                           <p className="text-sm text-muted-foreground">Loan {payment.loan?.loan_number}</p>
                           <h3 className="text-xl font-semibold mt-1">
-                            ₱{parseFloat(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ₱{parseFloat(payment.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           </h3>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Due on {new Date(payment.due_date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
+                            Due on{" "}
+                            {new Date(payment.due_date).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
                             })}
                           </p>
                         </div>
-                        <Button 
-                          className="w-full sm:w-auto"
-                          onClick={() => handlePayClick(payment)}
-                        >
+                        <Button className="w-full sm:w-auto" onClick={() => handlePayClick(payment)}>
                           Pay Now
                         </Button>
                       </div>
@@ -336,21 +328,18 @@ export default function PaymentsPage() {
                             <p className="text-sm text-muted-foreground">Loan {payment.loan?.loan_number}</p>
                           </div>
                           <h3 className="text-xl font-semibold mt-2">
-                            ₱{parseFloat(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ₱{parseFloat(payment.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           </h3>
                           <p className="text-sm text-destructive mt-1">
-                            Due on {new Date(payment.due_date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
+                            Due on{" "}
+                            {new Date(payment.due_date).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
                             })}
                           </p>
                         </div>
-                        <Button 
-                          variant="destructive" 
-                          className="w-full sm:w-auto"
-                          onClick={() => handlePayClick(payment)}
-                        >
+                        <Button variant="destructive" className="w-full sm:w-auto" onClick={() => handlePayClick(payment)}>
                           Pay Immediately
                         </Button>
                       </div>
@@ -364,12 +353,7 @@ export default function PaymentsPage() {
       </div>
 
       {/* Payment Modal */}
-      <PaymentModal
-        payment={selectedPayment}
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        onSuccess={handlePaymentSuccess}
-      />
+      <PaymentModal payment={selectedPayment} open={paymentModalOpen} onOpenChange={setPaymentModalOpen} onSuccess={handlePaymentSuccess} />
     </div>
-  );
+  )
 }

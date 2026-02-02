@@ -1,12 +1,14 @@
-'use client';
+"use client"
 
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth-context';
-import { BorrowerSidebar } from '@/components/borrower-sidebar';
-import { SidebarNav } from '@/components/sidebar-nav';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { DollarSign, TrendingUp, Users, FileText } from 'lucide-react';
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-context"
+import { BorrowerSidebar } from "@/components/borrower/borrower-sidebar"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { DollarSign, TrendingUp, Users, FileText } from "lucide-react"
+import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { LenderSidebar } from "@/components/lender/lender-sidebar"
+import { LoanOfficerSidebar } from "@/components/loan-officer/loan-officer-sidebar"
 
 function StatCard({ title, value, icon }: any) {
   return (
@@ -19,43 +21,44 @@ function StatCard({ title, value, icon }: any) {
         <div className="text-primary/30">{icon}</div>
       </div>
     </Card>
-  );
+  )
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { user, loading, authenticated } = useAuth();
+  const router = useRouter()
+  const { user, loading, authenticated } = useAuth()
 
   const handleLogout = () => {
     // Logout logic here
-  };
+  }
 
   const getRoleDashboard = () => {
     switch (user?.role) {
-      case 'admin':
-        return <AdminDashboard onLogout={handleLogout} user={user} />;
-      case 'lender':
-        return <LenderDashboard onLogout={handleLogout} user={user} />;
-      case 'borrower':
-        return <BorrowerDashboard onLogout={handleLogout} user={user} />;
-      case 'loan_officer':
-        return <LoanOfficerDashboard onLogout={handleLogout} user={user} />;
+      case "admin":
+        return <AdminDashboard onLogout={handleLogout} user={user} />
+      case "lender":
+        return <LenderDashboard onLogout={handleLogout} user={user} />
+      case "borrower":
+        return <BorrowerDashboard onLogout={handleLogout} user={user} />
+      case "loan_officer":
+        return <LoanOfficerDashboard onLogout={handleLogout} user={user} />
       default:
-        return <BorrowerDashboard onLogout={handleLogout} user={user} />;
+        return <BorrowerDashboard onLogout={handleLogout} user={user} />
     }
-  };
-
-  if (!authenticated) {
-    router.push('/');
-    return null;
   }
 
-  return getRoleDashboard();
+  if (!authenticated) {
+    router.push("/")
+    return null
+  }
+
+  return getRoleDashboard()
 }
 
 function AdminDashboard({ onLogout, user }: any) {
   return (
     <div className="min-h-screen bg-background">
+      <AdminSidebar />
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">LoanHub Admin</h1>
@@ -71,22 +74,10 @@ function AdminDashboard({ onLogout, user }: any) {
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            title="Total Loans"
-            value="248"
-            icon={<FileText className="h-5 w-5" />}
-          />
-          <StatCard
-            title="Active Users"
-            value="1,250"
-            icon={<Users className="h-5 w-5" />}
-          />
+          <StatCard title="Total Loans" value="248" icon={<FileText className="h-5 w-5" />} />
+          <StatCard title="Active Users" value="1,250" icon={<Users className="h-5 w-5" />} />
           <StatCard title="Total Volume" value="$2.5M" icon={<DollarSign className="h-5 w-5" />} />
-          <StatCard
-            title="Repayment Rate"
-            value="94.2%"
-            icon={<TrendingUp className="h-5 w-5" />}
-          />
+          <StatCard title="Repayment Rate" value="94.2%" icon={<TrendingUp className="h-5 w-5" />} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -101,12 +92,13 @@ function AdminDashboard({ onLogout, user }: any) {
         </div>
       </main>
     </div>
-  );
+  )
 }
 
 function LenderDashboard({ onLogout, user }: any) {
   return (
     <div className="min-h-screen bg-background">
+      <LenderSidebar />
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">LoanHub Lender</h1>
@@ -133,12 +125,12 @@ function LenderDashboard({ onLogout, user }: any) {
         </Card>
       </main>
     </div>
-  );
+  )
 }
 
 function BorrowerDashboard({ onLogout, user }: any) {
-  const router = useRouter();
-  
+  const router = useRouter()
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
@@ -148,13 +140,13 @@ function BorrowerDashboard({ onLogout, user }: any) {
       <div className="flex-1 lg:ml-0">
         {/* Add padding for mobile header */}
         <div className="lg:hidden h-16" />
-        
+
         <header className="border-b border-border bg-card">
           <div className="px-4 sm:px-6 py-4">
             <h2 className="text-xl font-semibold">Dashboard</h2>
           </div>
         </header>
-        
+
         <main className="p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <StatCard title="Total Borrowed" value="$50K" icon={<DollarSign className="h-5 w-5" />} />
@@ -175,12 +167,13 @@ function BorrowerDashboard({ onLogout, user }: any) {
         </main>
       </div>
     </div>
-  );
+  )
 }
 
 function LoanOfficerDashboard({ onLogout, user }: any) {
   return (
     <div className="min-h-screen bg-background">
+      <LoanOfficerSidebar />
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">LoanHub Officer</h1>
@@ -207,5 +200,5 @@ function LoanOfficerDashboard({ onLogout, user }: any) {
         </Card>
       </main>
     </div>
-  );
+  )
 }

@@ -1,27 +1,14 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { useAuth } from '@/components/auth-context';
-import { LenderSidebar } from '@/components/lender/lender-sidebar';
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useAuth } from "@/components/auth-context"
 import {
   Search,
   Filter,
@@ -37,205 +24,210 @@ import {
   Clock,
   Download,
   Mail,
-  CreditCard
-} from 'lucide-react';
+  CreditCard,
+  Check,
+  Cross,
+  X,
+} from "lucide-react"
+import { LoanOfficerSidebar } from "@/components/loan-officer/loan-officer-sidebar"
 
 interface Loan {
-  id: number;
-  loan_number: string;
-  type: string;
-  amount: string;
-  principal_amount?: string;
-  interest_rate: string;
-  term_months: number;
-  total_amount?: string;
-  outstanding_balance?: string;
-  status: string;
-  purpose?: string;
-  created_at: string;
-  approved_at?: string;
-  disbursement_date?: string;
+  id: number
+  loan_number: string
+  type: string
+  amount: string
+  principal_amount?: string
+  interest_rate: string
+  term_months: number
+  total_amount?: string
+  outstanding_balance?: string
+  status: string
+  purpose?: string
+  created_at: string
+  approved_at?: string
+  disbursement_date?: string
   borrower: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    name?: string;
-    email: string;
-  };
+    id: number
+    first_name: string
+    last_name: string
+    name?: string
+    email: string
+  }
   documents?: Array<{
-    id: number;
-    document_type: string;
-    file_name: string;
-  }>;
+    id: number
+    document_type: string
+    file_name: string
+  }>
 }
 
 export default function LenderLoansPage() {
-  const router = useRouter();
-  const { user, authenticated, loading: authLoading } = useAuth();
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
-  const [showLoanModal, setShowLoanModal] = useState(false);
-  const [loadingLoan, setLoadingLoan] = useState(false);
+  const router = useRouter()
+  const { user, authenticated, loading: authLoading } = useAuth()
+  const [loans, setLoans] = useState<Loan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
+  const [showLoanModal, setShowLoanModal] = useState(false)
+  const [loadingLoan, setLoadingLoan] = useState(false)
+  const [loanOfficerMap, setLoanOfficerMap] = useState<Record<number, number>>({})
+
 
   useEffect(() => {
     if (!authenticated && !authLoading) {
-      router.push('/');
-      return;
+      router.push("/")
+      return
     }
 
     if (authenticated) {
-      fetchLoans();
+      fetchLoans()
     }
-  }, [authenticated, authLoading, router]);
+  }, [authenticated, authLoading, router])
 
   const fetchLoans = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token")
+
       if (!token) {
-        setError('No authentication token found. Please log in again.');
-        setLoading(false);
-        return;
+        setError("No authentication token found. Please log in again.")
+        setLoading(false)
+        return
       }
 
-      const response = await fetch('/api/loans', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const response = await fetch("/api/loans", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        cache: 'no-store',
-      });
+        cache: "no-store",
+      })
 
       if (!response.ok) {
         if (response.status === 401) {
-          setError('Your session has expired. Please log in again.');
+          setError("Your session has expired. Please log in again.")
           setTimeout(() => {
-            localStorage.removeItem('token');
-            router.push('/');
-          }, 2000);
-          return;
+            localStorage.removeItem("token")
+            router.push("/")
+          }, 2000)
+          return
         }
-        throw new Error('Failed to fetch loans');
+        throw new Error("Failed to fetch loans")
       }
 
-      const data = await response.json();
-      setLoans(Array.isArray(data.loans) ? data.loans : []);
+      const data = await response.json()
+      setLoans(Array.isArray(data.loans) ? data.loans : [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load loans');
+      setError(err instanceof Error ? err.message : "Failed to load loans")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchLoanDetails = async (loanId: number) => {
-    setLoadingLoan(true);
+    setLoadingLoan(true)
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token")
       const response = await fetch(`/api/loans/${loanId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+        headers: { Authorization: `Bearer ${token}` },
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch loan details');
+        throw new Error("Failed to fetch loan details")
       }
 
-      const data = await response.json();
-      setSelectedLoan(data.loan);
-      setShowLoanModal(true);
+      const data = await response.json()
+      setSelectedLoan(data.loan)
+      setShowLoanModal(true)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to load loan details');
+      alert(err instanceof Error ? err.message : "Failed to load loan details")
     } finally {
-      setLoadingLoan(false);
+      setLoadingLoan(false)
     }
-  };
+  }
 
   const handleViewDetails = (loanId: number, e?: React.MouseEvent) => {
     if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault()
+      e.stopPropagation()
     }
-    fetchLoanDetails(loanId);
-  };
+    fetchLoanDetails(loanId)
+  }
 
   // Helper function to get borrower name
-  const getBorrowerName = (borrower: Loan['borrower']): string => {
-    if (!borrower) return 'N/A';
-    if (borrower.name) return borrower.name;
-    const firstName = borrower.first_name || '';
-    const lastName = borrower.last_name || '';
-    return `${firstName} ${lastName}`.trim() || 'N/A';
-  };
+  const getBorrowerName = (borrower: Loan["borrower"]): string => {
+    if (!borrower) return "N/A"
+    if (borrower.name) return borrower.name
+    const firstName = borrower.first_name || ""
+    const lastName = borrower.last_name || ""
+    return `${firstName} ${lastName}`.trim() || "N/A"
+  }
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string; className?: string }> = {
-      pending: { variant: 'default', label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-      approved: { variant: 'secondary', label: 'Approved', className: 'bg-blue-100 text-blue-800 border-blue-300' },
-      active: { variant: 'default', label: 'Active', className: 'bg-green-100 text-green-800 border-green-300' },
-      completed: { variant: 'default', label: 'Completed', className: 'bg-gray-100 text-gray-800 border-gray-300' },
-      rejected: { variant: 'destructive', label: 'Rejected' },
-      defaulted: { variant: 'destructive', label: 'Defaulted' },
-    };
+      pending: { variant: "default", label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+      approved: { variant: "secondary", label: "Approved", className: "bg-blue-100 text-blue-800 border-blue-300" },
+      active: { variant: "default", label: "Active", className: "bg-green-100 text-green-800 border-green-300" },
+      completed: { variant: "default", label: "Completed", className: "bg-gray-100 text-gray-800 border-gray-300" },
+      rejected: { variant: "destructive", label: "Rejected" },
+      defaulted: { variant: "destructive", label: "Defaulted" },
+    }
 
-    const config = variants[status] || { variant: 'default', label: status };
+    const config = variants[status] || { variant: "default", label: status }
     return (
       <Badge variant={config.variant} className={config.className}>
         {config.label}
       </Badge>
-    );
-  };
+    )
+  }
 
   // Safe filtering with null checks
-  const filteredLoans = Array.isArray(loans) ? loans.filter((loan) => {
-    if (!loan) return false;
+  const filteredLoans = Array.isArray(loans)
+    ? loans.filter((loan) => {
+        if (!loan) return false
 
-    const loanNumber = loan.loan_number?.toLowerCase() || '';
-    const borrowerName = getBorrowerName(loan.borrower).toLowerCase();
-    const borrowerEmail = loan.borrower?.email?.toLowerCase() || '';
-    const search = searchQuery.toLowerCase();
+        const loanNumber = loan.loan_number?.toLowerCase() || ""
+        const borrowerName = getBorrowerName(loan.borrower).toLowerCase()
+        const borrowerEmail = loan.borrower?.email?.toLowerCase() || ""
+        const search = searchQuery.toLowerCase()
 
-    const matchesSearch = 
-      loanNumber.includes(search) ||
-      borrowerName.includes(search) ||
-      borrowerEmail.includes(search);
+        const matchesSearch = loanNumber.includes(search) || borrowerName.includes(search) || borrowerEmail.includes(search)
 
-    const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
-    const matchesType = typeFilter === 'all' || loan.type === typeFilter;
+        const matchesStatus = statusFilter === "all" || loan.status === statusFilter
+        const matchesType = typeFilter === "all" || loan.type === typeFilter
 
-    return matchesSearch && matchesStatus && matchesType;
-  }) : [];
+        return matchesSearch && matchesStatus && matchesType
+      })
+    : []
 
   const stats = {
     total: loans.length,
-    pending: loans.filter(l => l?.status === 'pending').length,
-    approved: loans.filter(l => l?.status === 'approved').length,
-    active: loans.filter(l => l?.status === 'active').length,
-    completed: loans.filter(l => l?.status === 'completed').length,
-  };
+    pending: loans.filter((l) => l?.status === "pending").length,
+    approved: loans.filter((l) => l?.status === "approved").length,
+    active: loans.filter((l) => l?.status === "active").length,
+    completed: loans.filter((l) => l?.status === "completed").length,
+  }
 
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    );
+    )
   }
 
   return (
     <div className="flex min-h-screen bg-background">
+      <LoanOfficerSidebar />
+
       <div className="flex-1 lg:ml-64">
         <div className="lg:hidden h-16" />
-        
+
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="px-4 sm:px-6 py-4">
             <h1 className="text-2xl font-bold">Loans</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage and track all loan applications
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Manage and track all loan applications</p>
           </div>
         </header>
 
@@ -357,9 +349,9 @@ export default function LenderLoansPage() {
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No loans found</h3>
                   <p className="text-sm text-muted-foreground">
-                    {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                      ? 'Try adjusting your filters'
-                      : 'No loan applications have been submitted yet'}
+                    {searchQuery || statusFilter !== "all" || typeFilter !== "all"
+                      ? "Try adjusting your filters"
+                      : "No loan applications have been submitted yet"}
                   </p>
                 </div>
               </Card>
@@ -371,12 +363,10 @@ export default function LenderLoansPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-lg">{loan.id || 'N/A'}</h3>
+                            <h3 className="font-semibold text-lg">{loan.id || "N/A"}</h3>
                             {getStatusBadge(loan.status)}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1 capitalize">
-                            {loan.type ? loan.type.replace('_', ' ') : 'Unknown'} Loan
-                          </p>
+                          <p className="text-sm text-muted-foreground mt-1 capitalize">{loan.type ? loan.type.replace("_", " ") : "Unknown"} Loan</p>
                         </div>
                       </div>
 
@@ -393,7 +383,7 @@ export default function LenderLoansPage() {
                           <div>
                             <p className="text-muted-foreground text-xs">Amount</p>
                             <p className="font-medium">
-                              ₱{loan.amount ? parseFloat(loan.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+                              ₱{loan.amount ? parseFloat(loan.amount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "0.00"}
                             </p>
                           </div>
                         </div>
@@ -409,31 +399,51 @@ export default function LenderLoansPage() {
                           <div>
                             <p className="text-muted-foreground text-xs">Applied</p>
                             <p className="font-medium">
-                              {loan.created_at ? new Date(loan.created_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              }) : 'N/A'}
+                              {loan.created_at
+                                ? new Date(loan.created_at).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : "N/A"}
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
+                    <div className="flex flex-col sm:flex-row gap-2 min-w-[260px]">
+                      {/* Assign Loan Officer */}
+                      <Select
+                        value={loanOfficerMap[loan.id]?.toString()}
+                        onValueChange={(value) =>
+                          setLoanOfficerMap((prev) => ({
+                            ...prev,
+                            [loan.id]: Number(value),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Assign officer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Replace with real officers from API */}
+                          <SelectItem value="2">Officer John</SelectItem>
+                          <SelectItem value="3">Officer Jane</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                    <Button
-                      variant="outline"
-                      onClick={(e) => handleViewDetails(loan.id, e)}
-                      disabled={loadingLoan}
-                      className="w-full sm:w-auto flex-shrink-0"
-                      type="button"
-                    >
-                      {loadingLoan ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Eye className="h-4 w-4 mr-2" />
-                      )}
-                      View Details
-                    </Button>
+                      {/* Approve */}
+                      <Button variant="default" disabled={!loanOfficerMap[loan.id]} onClick={() => approveLoan(loan.id)}>
+                        <Check className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+
+                      {/* Reject */}
+                      <Button variant="destructive" onClick={() => rejectLoan(loan.id)}>
+                        <X className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))
@@ -453,15 +463,11 @@ export default function LenderLoansPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <CreditCard className="h-6 w-6 text-slate-600" />
-                      <h2 className="text-2xl font-bold text-slate-900 truncate">
-                        {selectedLoan.loan_number}
-                      </h2>
+                      <h2 className="text-2xl font-bold text-slate-900 truncate">{selectedLoan.id}</h2>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {getStatusBadge(selectedLoan.status)}
-                      <span className="text-sm text-slate-600 capitalize">
-                        {selectedLoan.type.replace('_', ' ')} Loan
-                      </span>
+                      <span className="text-sm text-slate-600 capitalize">{selectedLoan.type.replace("_", " ")} Loan</span>
                     </div>
                   </div>
                 </div>
@@ -477,10 +483,14 @@ export default function LenderLoansPage() {
                       <span className="text-xs font-medium text-emerald-700 uppercase">Principal</span>
                     </div>
                     <p className="text-2xl font-bold text-emerald-900">
-                      ₱{parseFloat(selectedLoan.principal_amount || selectedLoan.amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₱
+                      {parseFloat(selectedLoan.principal_amount || selectedLoan.amount || "0").toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </p>
                   </div>
-                  
+
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-center gap-2 mb-1">
                       <Percent className="h-4 w-4 text-blue-600" />
@@ -488,7 +498,7 @@ export default function LenderLoansPage() {
                     </div>
                     <p className="text-2xl font-bold text-blue-900">{selectedLoan.interest_rate}%</p>
                   </div>
-                  
+
                   <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-purple-600" />
@@ -546,10 +556,10 @@ export default function LenderLoansPage() {
                     <div className="flex-1 min-w-[140px]">
                       <p className="text-xs text-slate-500 mb-1">Applied</p>
                       <p className="font-medium text-slate-900 text-sm">
-                        {new Date(selectedLoan.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
+                        {new Date(selectedLoan.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
                         })}
                       </p>
                     </div>
@@ -557,10 +567,10 @@ export default function LenderLoansPage() {
                       <div className="flex-1 min-w-[140px]">
                         <p className="text-xs text-slate-500 mb-1">Approved</p>
                         <p className="font-medium text-slate-900 text-sm">
-                          {new Date(selectedLoan.approved_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
+                          {new Date(selectedLoan.approved_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
                           })}
                         </p>
                       </div>
@@ -569,10 +579,10 @@ export default function LenderLoansPage() {
                       <div className="flex-1 min-w-[140px]">
                         <p className="text-xs text-slate-500 mb-1">Disbursed</p>
                         <p className="font-medium text-slate-900 text-sm">
-                          {new Date(selectedLoan.disbursement_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
+                          {new Date(selectedLoan.disbursement_date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
                           })}
                         </p>
                       </div>
@@ -585,9 +595,7 @@ export default function LenderLoansPage() {
                   <div className="bg-slate-50 rounded-lg p-4 border">
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="h-4 w-4 text-slate-600" />
-                      <h3 className="font-semibold text-slate-900">
-                        Documents ({selectedLoan.documents.length})
-                      </h3>
+                      <h3 className="font-semibold text-slate-900">Documents ({selectedLoan.documents.length})</h3>
                     </div>
                     <div className="space-y-2">
                       {selectedLoan.documents.map((doc) => (
@@ -603,9 +611,7 @@ export default function LenderLoansPage() {
                               <p className="font-medium text-sm text-slate-900 truncate" title={doc.file_name}>
                                 {doc.file_name}
                               </p>
-                              <p className="text-xs text-slate-500 capitalize">
-                                {doc.document_type.replace('_', ' ')}
-                              </p>
+                              <p className="text-xs text-slate-500 capitalize">{doc.document_type.replace("_", " ")}</p>
                             </div>
                           </div>
                           <Button
@@ -613,10 +619,7 @@ export default function LenderLoansPage() {
                             size="sm"
                             className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => {
-                              window.open(
-                                `/api/loans/${selectedLoan.id}/documents/${doc.id}/download`,
-                                '_blank'
-                              );
+                              window.open(`/api/loans/${selectedLoan.id}/documents/${doc.id}/download`, "_blank")
                             }}
                           >
                             <Download className="h-4 w-4" />
@@ -630,10 +633,7 @@ export default function LenderLoansPage() {
 
               {/* Footer - Sticky */}
               <div className="sticky bottom-0 bg-white border-t p-4 flex justify-end">
-                <Button
-                  onClick={() => setShowLoanModal(false)}
-                  className="min-w-[120px]"
-                >
+                <Button onClick={() => setShowLoanModal(false)} className="min-w-[120px]">
                   Close
                 </Button>
               </div>
@@ -642,5 +642,5 @@ export default function LenderLoansPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

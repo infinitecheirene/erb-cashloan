@@ -182,7 +182,7 @@ export function LoansList({ onViewLoan }: LoansListProps) {
         <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
         <h3 className="text-lg font-semibold mb-2">No loans found</h3>
         <p className="text-muted-foreground">
-          You don't have any loan applications yet. Click "New Application" to get started.
+          You don&apos;t have any loan applications yet. Click &quot;New Application&quot; to get started.
         </p>
       </Card>
     );
