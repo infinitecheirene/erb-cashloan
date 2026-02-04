@@ -753,6 +753,9 @@ export default function ApplicationsPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    This is optional. If left unassigned, a lender may assign the loan to themselves later.
+                  </p>
                 </div>
               )}
 
