@@ -114,7 +114,7 @@ export function BorrowerSidebar() {
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 border-r border-border bg-card flex-col">
+      <aside className="hidden h-screen sticky fixed top-0 left-0 lg:flex w-64 border-r border-border bg-card flex-col">
         <NavContent />
       </aside>
     </>

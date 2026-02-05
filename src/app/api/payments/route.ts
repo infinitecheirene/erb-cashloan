@@ -1,70 +1,38 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization")
-    const token = authHeader?.replace("Bearer ", "")
+    // Extract token from headers
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    // Laravel API base URL
+    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-    const searchParams = request.nextUrl.searchParams
-    const type = searchParams.get("type") // 'upcoming' or 'overdue'
+    // Pass all query params from the frontend to Laravel dynamically
+    const queryParams = request.nextUrl.searchParams.toString();
+    const url = `${laravelUrl}/payments${queryParams ? `?${queryParams}` : ""}`;
 
-    // Build the correct endpoint based on type parameter
-    let endpoint = "/api/payments"
-    if (type === "upcoming") {
-      endpoint = "/api/payments/upcoming"
-    } else if (type === "overdue") {
-      endpoint = "/api/payments/overdue"
-    }
-
-    const url = `${laravelUrl}${endpoint}`
-
-    console.log(`[Payments API] Fetching from: ${url}`)
+    console.log("[Payments API] Fetching:", url);
 
     const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-    })
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
 
-    console.log(`[Payments API] Response status: ${response.status}`)
+    // Parse JSON safely
+    const data = await response.json();
+    console.log("[Payments API] Response data:", data);
 
-    if (!response.ok) {
-      let errorMessage = "Failed to fetch payments"
-      try {
-        const contentType = response.headers.get("content-type")
-        if (contentType && contentType.includes("application/json")) {
-          const error = await response.json()
-          errorMessage = error.message || errorMessage
-        } else {
-          // If not JSON, read as text for debugging
-          const text = await response.text()
-          console.error("[Payments API] Non-JSON error response:", text.substring(0, 200))
-          errorMessage = `Server error: ${response.statusText}`
-        }
-      } catch (e) {
-        console.error("[Payments API] Error parsing error response:", e)
-        errorMessage = `Server error: ${response.statusText}`
-      }
-
-      return NextResponse.json({ message: errorMessage }, { status: response.status })
-    }
-
-    const data = await response.json()
-    console.log(data)
-    return NextResponse.json(data)
+    // Forward everything to the frontend
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("[Payments API] Get payments error:", error)
-    return NextResponse.json({ message: error instanceof Error ? error.message : "An error occurred" }, { status: 500 })
+    console.error("[Payments API] Error:", error);
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Unexpected error" }, { status: 500 });
   }
 }
+
+
 
 export async function POST(request: NextRequest) {
   try {

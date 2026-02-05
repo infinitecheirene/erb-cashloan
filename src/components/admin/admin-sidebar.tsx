@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-context"
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Menu, X, Building2, File, User } from "lucide-react"
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Menu, X, Building2, File, User, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -13,10 +13,15 @@ const navigation = [
     href: "/dashboard",
     icon: LayoutDashboard,
   },
-    {
+  {
     name: "Loans",
     href: "/admin/loans",
     icon: FileText,
+  },
+  {
+    name: "Payments",
+    href: "/admin/payments",
+    icon: CreditCard,
   },
   {
     name: "Reports",

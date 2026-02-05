@@ -357,6 +357,7 @@ export default function ApplicationsPage() {
       const body = {
         start_date: activateStartDate || null,
         first_payment_date: activateFirstPaymentDate || null,
+        notes: notes || null,
       }
 
       const res = await fetch(`/api/loans/${selectedApp.id}/activate`, {
@@ -490,56 +491,66 @@ export default function ApplicationsPage() {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("Unauthorized")
 
-      const payload: Record<string, any> = {}
-
-      // Always include status if changed
-      if (status && status !== selectedApp.status) payload.status = status
-
-      // Pending / Approved: status, assign lender, approved amount, interest rate, notes
-      if (status === "pending" || status === "approved") {
-        if (approvedAmount !== "") payload.approved_amount = Number(approvedAmount)
-        if (interestRate !== "") payload.interest_rate = Number(interestRate)
-        if (notes !== "") payload.notes = notes
-        if (user?.role === "admin" && selectedLenderId) payload.lender_id = selectedLenderId
-      }
-
-      // Rejected: status, rejection reason only
-      if (status === "rejected") {
-        if (rejectionReason !== "") payload.rejection_reason = rejectionReason
-      }
-
-      // Active: status, assign lender, start date, first payment, notes
       if (status === "active") {
+        // Use activate API if status is active
+        const body = {
+          start_date: activateStartDate || null,
+          first_payment_date: activateFirstPaymentDate || null,
+          notes: notes || null,
+        }
+
+        const res = await fetch(`/api/loans/${selectedApp.id}/activate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(body),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: "Failed to activate loan" }))
+          throw new Error(err.message || "Failed to activate loan")
+        }
+
+        const data = await res.json()
+        toast.success("Loan activated successfully", { description: data.message })
+      } else {
+        // Use normal update API for other statuses
+        const payload: Record<string, any> = {}
+
+        if (status && status !== selectedApp.status) payload.status = status
+        if (notes !== "") payload.notes = notes
+        if (status === "approved" && approvedAmount !== "") payload.approved_amount = Number(approvedAmount)
+        if (status === "approved" && interestRate !== "") payload.interest_rate = Number(interestRate)
         if (user?.role === "admin" && selectedLenderId) payload.lender_id = selectedLenderId
-        if (activateStartDate) payload.start_date = activateStartDate
-        if (activateFirstPaymentDate) payload.first_payment_date = activateFirstPaymentDate
-        if (notes !== "") payload.notes = notes
+        if (status === "rejected" && rejectionReason !== "") payload.rejection_reason = rejectionReason
+
+        const res = await fetch(`/api/loans/${selectedApp.id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.message || "Update failed")
+        }
+
+        toast.success("Loan updated successfully")
       }
 
-      // Completed / Defaulted: status, notes only
-      if (status === "completed" || status === "defaulted") {
-        if (notes !== "") payload.notes = notes
-      }
-
-      const res = await fetch(`/api/loans/${selectedApp.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || "Update failed")
-      }
-
-      toast.success("Loan updated successfully")
-
+      // Reset modal & refresh data
       setShowUpdateModal(false)
       setSelectedApp(null)
+      setActivateStartDate("")
+      setActivateFirstPaymentDate("")
+      setNotes("")
       fetchApplications()
       fetchLoanStatistics()
     } catch (err) {
@@ -608,7 +619,7 @@ export default function ApplicationsPage() {
         <Dialog open={showActivateModal} onOpenChange={setShowActivateModal}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Activate Loan #{selectedApp?.loan_number}</DialogTitle>
+              <DialogTitle>Activate Loan #{selectedApp?.id}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 mt-2">
@@ -631,6 +642,12 @@ export default function ApplicationsPage() {
                 />
               </div>
 
+              <div className="space-y-1">
+                <label htmlFor="activateFirstPaymentDate" className="text-sm font-medium">
+                  Note
+                </label>
+                <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
               <Button className="w-full" onClick={handleActivate} disabled={activating}>
                 <CheckCircle2 className="h-4 w-4 mr-2" /> {activating ? "Activating..." : "Activate Loan"}
               </Button>

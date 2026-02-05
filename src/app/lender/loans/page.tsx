@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/components/auth-context"
-import { LenderSidebar } from "@/components/lender/lender-sidebar"
 import {
   Search,
   Filter,
@@ -26,11 +25,16 @@ import {
   Download,
   Mail,
   CreditCard,
+  Check,
+  Cross,
+  X,
   CheckCheckIcon,
   Edit,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { LenderSidebar } from "@/components/lender/lender-sidebar"
+import { toast } from "sonner"
 
 interface Loan {
   id: number
@@ -43,7 +47,9 @@ interface Loan {
   term_months?: number
   purpose?: string
   created_at: string
+  approved_at?: string
   updated_at: string
+  disbursement_date?: string
   start_date?: string
   first_payment_date?: string
   notes?: string
@@ -56,6 +62,7 @@ interface Loan {
     email?: string
   }
   lender?: {
+    id: number
     first_name: string
     last_name: string
     email?: string
@@ -74,13 +81,6 @@ interface Loan {
   }>
 }
 
-interface Lender {
-  id: number
-  first_name: string
-  last_name: string
-  email?: string
-}
-
 export default function LenderLoansPage() {
   const router = useRouter()
   const { user, authenticated, loading: authLoading } = useAuth()
@@ -90,31 +90,21 @@ export default function LenderLoansPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
   const [showLoanModal, setShowLoanModal] = useState(false)
-  const [loadingLoan, setLoadingLoan] = useState(false)
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
 
-  const [showActivateModal, setShowActivateModal] = useState(false)
-  const [activating, setActivating] = useState(false)
+  const [status, setStatus] = useState("")
+  const [approvedAmount, setApprovedAmount] = useState("")
+  const [interestRate, setInterestRate] = useState("")
+  const [notes, setNotes] = useState("")
+  const [rejectionReason, setRejectionReason] = useState("")
   const [activateStartDate, setActivateStartDate] = useState("")
   const [activateFirstPaymentDate, setActivateFirstPaymentDate] = useState("")
-  const [loanToActivate, setLoanToActivate] = useState<Loan | null>(null)
-
-  // Add these state hooks at the top of your component:
-  const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const [selectedApp, setSelectedApp] = useState<Loan | null>(null)
-
-  // Fields for the update modal
-  const [status, setStatus] = useState<string>("")
-  const [approvedAmount, setApprovedAmount] = useState<string>("")
-  const [interestRate, setInterestRate] = useState<string>("")
-  const [notes, setNotes] = useState<string>("")
-  const [rejectionReason, setRejectionReason] = useState<string>("")
-  const [selectedLenderId, setSelectedLenderId] = useState<number | null>(null)
   const [updating, setUpdating] = useState(false)
 
-  // Example lenders list (replace with your actual API data)
-  const [lenders, setLenders] = useState<Lender[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     if (!authenticated && !authLoading) {
@@ -166,28 +156,6 @@ export default function LenderLoansPage() {
     }
   }
 
-  // const fetchLoanDetails = async (loanId: number) => {
-  //   setLoadingLoan(true)
-  //   try {
-  //     const token = localStorage.getItem("token")
-  //     const response = await fetch(`/api/loans/${loanId}`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     })
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch loan details")
-  //     }
-
-  //     const data = await response.json()
-  //     setSelectedLoan(data.loan)
-  //     setShowLoanModal(true)
-  //   } catch (err) {
-  //     alert(err instanceof Error ? err.message : "Failed to load loan details")
-  //   } finally {
-  //     setLoadingLoan(false)
-  //   }
-  // }
-
   const handleViewDetails = (loan: Loan, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault()
@@ -198,115 +166,9 @@ export default function LenderLoansPage() {
     setShowLoanModal(true)
   }
 
-  const handleActivateClick = (loan: Loan, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-
-    setLoanToActivate(loan)
-    setActivateStartDate("")
-    setActivateFirstPaymentDate("")
-    setShowActivateModal(true)
-  }
-
-  const handleActivate = async () => {
-    if (!loanToActivate) return
-
-    if (!activateStartDate || !activateFirstPaymentDate) {
-      alert("Please select both start date and first payment date.")
-      return
-    }
-
-    try {
-      setActivating(true)
-
-      const token = localStorage.getItem("token")
-      const response = await fetch(`/api/loans/${loanToActivate.id}/activate`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          start_date: activateStartDate,
-          first_payment_date: activateFirstPaymentDate,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to activate loan")
-      }
-
-      // Update local loans state with full updated loan data
-      setLoans((prev) => prev.map((l) => (l.id === loanToActivate.id ? { ...l, ...data.loan } : l)))
-
-      // Close modal and reset
-      setShowActivateModal(false)
-      setLoanToActivate(null)
-      setActivateStartDate("")
-      setActivateFirstPaymentDate("")
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Activation failed")
-    } finally {
-      setActivating(false)
-    }
-  }
-  const handleOpenUpdateModal = (loan: Loan) => {
-    setSelectedApp(loan)
-    setStatus(loan.status)
-    setApprovedAmount(loan.approved_amount || "")
-    setInterestRate(loan.interest_rate || "")
-    setNotes(loan.notes || "")
-    setRejectionReason(loan.rejection_reason || "")
-    setSelectedLenderId(loan.lender?.id || null)
-    setShowUpdateModal(true)
-  }
-
-  const handleUpdateLoan = async () => {
-    if (!selectedApp) return
-    try {
-      setUpdating(true)
-      const token = localStorage.getItem("token")
-      const body = {
-        status,
-        approved_amount: approvedAmount,
-        interest_rate: interestRate,
-        notes,
-        rejection_reason: rejectionReason,
-        lender_id: selectedLenderId,
-      }
-
-      const response = await fetch(`/api/loans/${selectedApp.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.message || "Failed to update loan")
-
-      // Update the local loan list
-      setLoans((prev) => prev.map((l) => (l.id === selectedApp.id ? { ...l, ...data.loan } : l)))
-
-      setShowUpdateModal(false)
-      setSelectedApp(null)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed")
-    } finally {
-      setUpdating(false)
-    }
-  }
-
   // Helper function to get borrower name
   const getBorrowerName = (borrower: Loan["borrower"]): string => {
     if (!borrower) return "N/A"
-    if (borrower.name) return borrower.name
     const firstName = borrower.first_name || ""
     const lastName = borrower.last_name || ""
     return `${firstName} ${lastName}`.trim() || "N/A"
@@ -314,12 +176,12 @@ export default function LenderLoansPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string; className?: string }> = {
-      pending: { variant: "default", label: "Pending", className: "bg-yellow-100 text-yellow-700 capitalize" },
-      approved: { variant: "secondary", label: "Approved", className: "bg-blue-100 text-blue-700 capitalize" },
-      active: { variant: "default", label: "Active", className: "bg-green-100 text-green-700 capitalize" },
-      completed: { variant: "default", label: "Completed", className: "bg-gray-100 text-gray-700 capitalize" },
-      rejected: { variant: "destructive", label: "Rejected", className: "bg-red-100 text-red-700 capitalize" },
-      defaulted: { variant: "destructive", label: "Defaulted", className: "bg-black text-white capitalize" },
+      pending: { variant: "default", label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+      approved: { variant: "secondary", label: "Approved", className: "bg-blue-100 text-blue-800 border-blue-300" },
+      active: { variant: "default", label: "Active", className: "bg-green-100 text-green-800 border-green-300" },
+      completed: { variant: "default", label: "Completed", className: "bg-gray-100 text-gray-800 border-gray-300" },
+      rejected: { variant: "destructive", label: "Rejected" },
+      defaulted: { variant: "destructive", label: "Defaulted" },
     }
 
     const config = variants[status] || { variant: "default", label: status }
@@ -349,6 +211,9 @@ export default function LenderLoansPage() {
       })
     : []
 
+  const totalPages = Math.ceil(filteredLoans.length / itemsPerPage)
+  const paginatedLoans = filteredLoans.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
   const stats = {
     total: loans.length,
     pending: loans.filter((l) => l?.status === "pending").length,
@@ -365,8 +230,99 @@ export default function LenderLoansPage() {
     )
   }
 
+  const openUpdateModal = (loan: Loan, newStatus?: string) => {
+    setSelectedLoan(loan)
+
+    setStatus(newStatus ?? loan.status)
+    setApprovedAmount("")
+    setInterestRate(loan.interest_rate ?? "")
+    setNotes("")
+    setRejectionReason("")
+    setActivateStartDate("")
+    setActivateFirstPaymentDate("")
+
+    setShowUpdateModal(true)
+  }
+
+  const handleUpdateLoan = async () => {
+    if (!selectedLoan) return
+    setUpdating(true)
+
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("Unauthorized")
+
+      if (status === "active") {
+        // Use activate API if status is active
+        const body = {
+          start_date: activateStartDate || null,
+          first_payment_date: activateFirstPaymentDate || null,
+          notes: notes || null,
+        }
+
+        const res = await fetch(`/api/loans/${selectedLoan.id}/activate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(body),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: "Failed to activate loan" }))
+          throw new Error(err.message || "Failed to activate loan")
+        }
+
+        const data = await res.json()
+        toast.success("Loan activated successfully", { description: data.message })
+      } else {
+        // Use normal update API for other statuses
+        const payload: Record<string, any> = {}
+
+        if (status && status !== selectedLoan.status) payload.status = status
+        if (notes !== "") payload.notes = notes
+        if (status === "approved" && approvedAmount !== "") payload.approved_amount = Number(approvedAmount)
+        if (status === "approved" && interestRate !== "") payload.interest_rate = Number(interestRate)
+        if (status === "rejected" && rejectionReason !== "") payload.rejection_reason = rejectionReason
+
+        const res = await fetch(`/api/loans/${selectedLoan.id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.message || "Update failed")
+        }
+
+        toast.success("Loan updated successfully")
+      }
+
+      // Reset modal & refresh data
+      setShowUpdateModal(false)
+      setSelectedLoan(null)
+      setActivateStartDate("")
+      setActivateFirstPaymentDate("")
+      setNotes("")
+      fetchLoans()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update loan")
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
+      <LenderSidebar />
+
       <div className="flex-1 lg:ml-64">
         <div className="lg:hidden h-16" />
 
@@ -489,7 +445,7 @@ export default function LenderLoansPage() {
 
           {/* Loans List */}
           <div className="space-y-4">
-            {filteredLoans.length === 0 ? (
+            {paginatedLoans.length === 0 ? (
               <Card className="p-8">
                 <div className="text-center">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -502,7 +458,7 @@ export default function LenderLoansPage() {
                 </div>
               </Card>
             ) : (
-              filteredLoans.map((loan) => (
+              paginatedLoans.map((loan) => (
                 <Card key={loan.id} className="p-4 sm:p-6 hover:shadow-md transition-shadow">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-3 flex-1 min-w-0">
@@ -529,7 +485,10 @@ export default function LenderLoansPage() {
                           <div>
                             <p className="text-muted-foreground text-xs">Amount</p>
                             <p className="font-medium">
-                              ₱{loan.amount ? parseFloat(loan.amount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "0.00"}
+                              ₱
+                              {loan.principal_amount
+                                ? parseFloat(loan.principal_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })
+                                : "0.00"}
                             </p>
                           </div>
                         </div>
@@ -557,52 +516,75 @@ export default function LenderLoansPage() {
                         </div>
                       </div>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      onClick={(e) => handleViewDetails(loan, e)}
-                      className="w-full sm:w-auto flex-shrink-0"
-                      type="button"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {loan?.status === "approved" && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={(e) => handleActivateClick(loan, e)}
-                          className="w-full sm:w-auto flex-shrink-0"
-                          type="button"
-                          title="Activate"
-                        >
-                          <CheckCheckIcon className="h-4 w-4 text-green-500" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenUpdateModal(loan)}
-                          className="w-full sm:w-auto flex-shrink-0"
-                          type="button"
-                          title="Update Loan"
-                        >
-                          <Edit className="h-4 w-4 text-blue-500" />
-                        </Button>
-                      </>
-                    )}
-                    {loan.status === "active" && (
+                    <div className="flex flex-col sm:flex-row gap-2 min-w-[260px]">
+                      {/* View */}
                       <Button
                         variant="outline"
-                        onClick={() => handleOpenUpdateModal(loan)}
-                        className="w-full sm:w-auto flex-shrink-0"
+                        onClick={(e) => handleViewDetails(loan, e)}
+                        className="w-full sm:w-auto"
                         type="button"
-                        title="Update Loan"
+                        title="View Details"
                       >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+
+                      {/* Edit */}
+                      <Button variant="outline" onClick={() => openUpdateModal(loan)} className="w-full sm:w-auto" title="Update Loan">
                         <Edit className="h-4 w-4 text-blue-500" />
                       </Button>
-                    )}
+
+                      {/* Status selector */}
+                      <Select value={loan.status} onValueChange={(value) => openUpdateModal(loan, value)}>
+                        <SelectTrigger className="w-[140px] text-sm border-gray-200">
+                          <SelectValue />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          <SelectItem value="pending" disabled={loan.status !== "pending"}>
+                            Pending
+                          </SelectItem>
+                          <SelectItem value="approved" disabled={loan.status !== "pending"}>
+                            Approved
+                          </SelectItem>
+                          <SelectItem value="rejected" disabled={loan.status !== "pending"}>
+                            Rejected
+                          </SelectItem>
+                          <SelectItem value="active" disabled={loan.status !== "approved"}>
+                            Active
+                          </SelectItem>
+                          <SelectItem value="completed" disabled={loan.status !== "active"}>
+                            Completed
+                          </SelectItem>
+                          <SelectItem value="defaulted" disabled={loan.status !== "completed"}>
+                            Defaulted
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </Card>
               ))
+            )}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}>
+                  Previous
+                </Button>
+
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                >
+                  Next
+                </Button>
+              </div>
             )}
           </div>
         </main>
@@ -610,16 +592,16 @@ export default function LenderLoansPage() {
 
       {/* Loan Details Modal */}
       <Dialog open={showLoanModal} onOpenChange={setShowLoanModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="w-full sm:max-w-lg md:max-w-3xl lg:max-w-5xl max-h-[90vh] overflow-y-auto p-0">
           {selectedLoan && (
             <>
               {/* Header - Sticky */}
               <div className="sticky top-0 bg-gradient-to-r from-slate-50 to-slate-100 border-b p-6 z-10">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <CreditCard className="h-6 w-6 text-slate-600" />
-                      <h2 className="text-2xl font-bold text-slate-900 truncate">{selectedLoan.loan_number}</h2>
+                      <h2 className="text-2xl font-bold text-slate-900 truncate">{selectedLoan.id}</h2>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {getStatusBadge(selectedLoan.status)}
@@ -632,7 +614,7 @@ export default function LenderLoansPage() {
               {/* Content */}
               <div className="p-6 space-y-6">
                 {/* 1. Key Financial Info */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                     <div className="flex items-center gap-2 mb-1">
                       <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -640,13 +622,26 @@ export default function LenderLoansPage() {
                     </div>
                     <p className="text-2xl font-bold text-emerald-900">
                       ₱
-                      {parseFloat(selectedLoan.principal_amount || selectedLoan.amount || "0").toLocaleString("en-US", {
+                      {parseFloat(selectedLoan.principal_amount || "0").toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </p>
                   </div>
-
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-gray-600" />
+                      <span className="text-xs font-medium text-gray-700 uppercase">Approved Amount</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">₱{selectedLoan.approved_amount}</p>
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-red-600" />
+                      <span className="text-xs font-medium text-red-700 uppercase">Outstanding Balance</span>
+                    </div>
+                    <p className="text-2xl font-bold text-red-900">₱{selectedLoan.outstanding_balance}</p>
+                  </div>
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-center gap-2 mb-1">
                       <Percent className="h-4 w-4 text-blue-600" />
@@ -654,7 +649,6 @@ export default function LenderLoansPage() {
                     </div>
                     <p className="text-2xl font-bold text-blue-900">{selectedLoan.interest_rate}%</p>
                   </div>
-
                   <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-purple-600" />
@@ -675,7 +669,7 @@ export default function LenderLoansPage() {
                       <div>
                         <p className="text-xs text-slate-500 mb-1">Name</p>
                         <p className="font-medium text-slate-900 text-sm">
-                          {selectedLoan.borrower.name || `${selectedLoan.borrower.first_name} ${selectedLoan.borrower.last_name}`}
+                          {`${selectedLoan.borrower.first_name} ${selectedLoan.borrower.last_name}`}
                         </p>
                       </div>
                       <div className="min-w-0">
@@ -687,6 +681,11 @@ export default function LenderLoansPage() {
                           </p>
                         </div>
                       </div>
+                      {/* Employment Status */}
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1">Employment Status</p>
+                        <p className="font-medium text-slate-900 text-sm capitalize">{selectedLoan.employment_status || "-"}</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -695,86 +694,22 @@ export default function LenderLoansPage() {
                 <div className="bg-slate-50 rounded-lg p-4 border">
                   <h3 className="font-semibold text-slate-900 mb-3">Loan Details</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Borrower */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Borrower</p>
-                      <p className="font-medium text-slate-900 text-sm">
-                        {selectedLoan.borrower?.name || `${selectedLoan.borrower?.first_name || ""} ${selectedLoan.borrower?.last_name || ""}` || "-"}
-                      </p>
-                      <p className="font-medium text-gray-500 text-sm">{selectedLoan.borrower?.email || "-"}</p>
-                    </div>
-
-                    {/* Lender */}
+                    {/* Loan Officer */}
                     <div>
                       <p className="text-xs text-slate-500 mb-1">Lender</p>
                       <p className="font-medium text-slate-900 text-sm">
-                        {selectedLoan.lender?.name || `${selectedLoan.lender?.first_name || ""} ${selectedLoan.lender?.last_name || ""}` || "-"}
+                        {`${selectedLoan.lender?.first_name || ""} ${selectedLoan.lender?.last_name || ""}` || "-"}
                       </p>
                       <p className="font-medium text-gray-500 text-sm">{selectedLoan.lender?.email || "-"}</p>
                     </div>
 
-                    {/* Loan Officer */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Loan Officer</p>
-                      <p className="font-medium text-slate-900 text-sm">
-                        {selectedLoan.loan_officer?.name ||
-                          `${selectedLoan.loan_officer?.first_name || ""} ${selectedLoan.loan_officer?.last_name || ""}` ||
-                          "-"}
-                      </p>
-                      <p className="font-medium text-gray-500 text-sm">{selectedLoan.loan_officer?.email || "-"}</p>
-                    </div>
-
-                    {/* Type */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Type</p>
-                      <p className="font-medium text-slate-900 text-sm">{selectedLoan.type || "-"}</p>
-                    </div>
-
-                    {/* Employment Status */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Employment Status</p>
-                      <p className="font-medium text-slate-900 text-sm">{selectedLoan.employment_status || "-"}</p>
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Status</p>
-                      <p className="font-medium text-slate-900 text-sm capitalize">{selectedLoan.status || "-"}</p>
-                    </div>
-
-                    {/* Approved Amount */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Approved Amount</p>
-                      <p className="font-medium text-slate-900 text-sm">
-                        ₱
-                        {parseFloat(selectedLoan.approved_amount || "0").toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </p>
-                    </div>
-
-                    {/* Start Date */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                      <p className="font-medium text-slate-900 text-sm">
-                        {selectedLoan.start_date ? new Date(selectedLoan.start_date).toLocaleDateString() : "-"}
-                      </p>
-                    </div>
-
-                    {/* First Payment Date */}
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">First Payment Date</p>
-                      <p className="font-medium text-slate-900 text-sm">
-                        {selectedLoan.first_payment_date ? new Date(selectedLoan.first_payment_date).toLocaleDateString() : "-"}
-                      </p>
-                    </div>
-
                     {/* Rejection Reason */}
-                    <div className="col-span-2">
-                      <p className="text-xs text-slate-500 mb-1">Rejection Reason</p>
-                      <p className="font-medium text-slate-900 text-sm">{selectedLoan.rejection_reason || "-"}</p>
-                    </div>
+                    {selectedLoan.status === "rejected" && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500 mb-1">Rejection Reason</p>
+                        <p className="font-medium text-slate-900 text-sm">{selectedLoan.rejection_reason || "-"}</p>
+                      </div>
+                    )}
 
                     {/* Notes */}
                     <div className="col-span-2">
@@ -821,6 +756,23 @@ export default function LenderLoansPage() {
                         <p className="text-xs text-slate-500 mb-1">Disbursed</p>
                         <p className="font-medium text-slate-900 text-sm">
                           {new Date(selectedLoan.disbursement_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedLoan.start_date && (
+                      <div className="flex-1 min-w-[140px]">
+                        <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                        <p className="font-medium text-slate-900 text-sm">
+                          {new Date(selectedLoan.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedLoan.first_payment_date && (
+                      <div className="flex-1 min-w-[140px]">
+                        <p className="text-xs text-slate-500 mb-1">First Payment Date</p>
+                        <p className="font-medium text-slate-900 text-sm">
+                          {new Date(selectedLoan.first_payment_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
                     )}
@@ -877,80 +829,96 @@ export default function LenderLoansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* activation modal */}
-      <Dialog open={showActivateModal} onOpenChange={setShowActivateModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Activate Loan #{loanToActivate?.loan_number}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <label htmlFor="activateStartDate" className="text-sm font-medium">
-                Start Date
-              </label>
-              <Input id="activateStartDate" type="date" value={activateStartDate} onChange={(e) => setActivateStartDate(e.target.value)} />
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="activateFirstPaymentDate" className="text-sm font-medium">
-                First Payment Date
-              </label>
-              <Input
-                id="activateFirstPaymentDate"
-                type="date"
-                value={activateFirstPaymentDate}
-                onChange={(e) => setActivateFirstPaymentDate(e.target.value)}
-              />
-            </div>
-
-            <Button className="w-full" onClick={handleActivate} disabled={activating}>
-              <CheckCheckIcon className="h-4 w-4 mr-2" />
-              {activating ? "Activating..." : "Activate Loan"}
-            </Button>
-          </div>
-
-          <div className="flex justify-end mt-4">
-            <Button variant="ghost" onClick={() => setShowActivateModal(false)}>
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* update */}
+      {/* Update Modal */}
       <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Update Loan #{selectedApp?.id}</DialogTitle>
+            <DialogTitle>Update Loan #{selectedLoan?.id}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Status is always visible */}
+            {/* Status */}
             <div>
               <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+
+              <Select value={status} onValueChange={(value) => setStatus(value)}>
+                <SelectTrigger className="w-[140px] text-sm border-gray-200">
+                  <SelectValue />
                 </SelectTrigger>
+
                 <SelectContent>
-                  {["active", "completed", "defaulted"].map((s) => (
-                    <SelectItem key={s} value={s} disabled={selectedApp?.status === "approved" && (s === "completed" || s === "defaulted")}>
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
-                    </SelectItem>
-                  ))}
+                  {/* Pending → can only stay pending */}
+                  <SelectItem value="pending" disabled={selectedLoan?.status !== "pending"}>
+                    Pending
+                  </SelectItem>
+
+                  {/* Pending → Approved */}
+                  <SelectItem value="approved" disabled={selectedLoan?.status !== "pending"}>
+                    Approved
+                  </SelectItem>
+
+                  {/* Pending → Rejected */}
+                  <SelectItem value="rejected" disabled={selectedLoan?.status !== "pending"}>
+                    Rejected
+                  </SelectItem>
+
+                  {/* Approved → Active */}
+                  <SelectItem value="active" disabled={selectedLoan?.status !== "approved"}>
+                    Active
+                  </SelectItem>
+
+                  {/* Active → Completed */}
+                  <SelectItem value="completed" disabled={selectedLoan?.status !== "active"}>
+                    Completed
+                  </SelectItem>
+
+                  {/* Completed → Defaulted */}
+                  <SelectItem value="defaulted" disabled={selectedLoan?.status !== "completed"}>
+                    Defaulted
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {(() => {
               // Determine what fields to show based on status
+              const isPending = status === "pending"
+              const isApproved = status === "approved"
+              const isRejected = status === "rejected"
               const isActive = status === "active"
               const isCompleted = status === "completed"
               const isDefaulted = status === "defaulted"
 
               return (
                 <>
+                  {/* Approved Amount & Interest Rate */}
+                  {(isPending || isApproved) && (
+                    <>
+                      <div>
+                        <Label>Approved Amount</Label>
+                        <Input type="number" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                      </div>
+
+                      <div>
+                        <Label>Interest Rate (%)</Label>
+                        <Input type="number" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} />
+                      </div>
+
+                      <div>
+                        <Label>Notes</Label>
+                        <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Rejection Reason */}
+                  {isRejected && (
+                    <div>
+                      <Label>Rejection Reason</Label>
+                      <Textarea placeholder="Rejection Reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} />
+                    </div>
+                  )}
+
                   {/* Activate fields */}
                   {isActive && (
                     <>
