@@ -152,7 +152,7 @@ export default function PaymentsPage() {
 
         <header className="border-b border-border bg-card">
           <div className="px-4 sm:px-6 py-4">
-            <h2 className="text-xl font-semibold">Payments</h2>
+            <h1 className="text-3xl font-bold text-primary">Payments</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage your loan payments</p>
           </div>
         </header>

@@ -223,7 +223,7 @@ export default function LenderDashboardPage() {
         
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="px-4 sm:px-6 py-4">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Welcome back, {user?.first_name}
             </p>

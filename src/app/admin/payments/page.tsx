@@ -247,7 +247,7 @@ export default function AdminPaymentsPage() {
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
-              <h1 className="text-2xl font-bold">Payments</h1>
+             <h1 className="text-3xl font-bold text-primary">Payments</h1>
               <p className="text-sm text-muted-foreground mt-1">Manage and track all payments</p>
             </div>
           </div>

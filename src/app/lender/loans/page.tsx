@@ -328,7 +328,7 @@ export default function LenderLoansPage() {
 
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="px-4 sm:px-6 py-4">
-            <h1 className="text-2xl font-bold">Loans</h1>
+            <h1 className="text-3xl font-bold text-primary">Loans</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage and track all loan applications</p>
           </div>
         </header>
