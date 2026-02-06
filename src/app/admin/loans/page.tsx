@@ -7,13 +7,33 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle2, XCircle, Eye, FileText, Loader2, Download, Edit2 } from "lucide-react"
+import {
+  CheckCircle2,
+  XCircle,
+  Eye,
+  FileText,
+  Loader2,
+  Download,
+  Edit2,
+} from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/data-table"
 
@@ -41,6 +61,7 @@ interface LoanApplication {
     email?: string
   }
   lender?: {
+    id: number
     first_name: string
     last_name: string
     email?: string
@@ -65,6 +86,8 @@ interface Lender {
   last_name: string
   email?: string
 }
+
+type LoanType = "personal" | "auto" | "home" | "business" | "student"
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 capitalize",
@@ -152,7 +175,9 @@ export default function ApplicationsPage() {
       })
       if (!response.ok) throw new Error("Failed to fetch applications")
       const data = await response.json()
-      const loans = Array.isArray(data.loans) ? data.loans : (data.loans?.data ?? [])
+      const loans = Array.isArray(data.loans)
+        ? data.loans
+        : (data.loans?.data ?? [])
       setApplications(loans)
     } catch (err) {
       console.error(err)
@@ -195,13 +220,16 @@ export default function ApplicationsPage() {
     { header: "Loan Number", accessorKey: "id" },
     {
       header: "Borrower",
-      accessorFn: (row) => (row.borrower ? `${row.borrower.first_name} ${row.borrower.last_name}` : "N/A"),
+      accessorFn: (row) =>
+        row.borrower
+          ? `${row.borrower.first_name} ${row.borrower.last_name}`
+          : "N/A",
     },
     {
       header: "Type",
       accessorKey: "type",
       cell: ({ row }) => {
-        const value = row.getValue("type")
+        const value = row.getValue<LoanType>("type")
         const labels = {
           personal: "Personal Loan",
           auto: "Auto Loan",
@@ -218,15 +246,25 @@ export default function ApplicationsPage() {
     },
     {
       header: "Approved Amount",
-      accessorFn: (row) => (row.approved_amount ? `₱${Number(row.approved_amount).toLocaleString()}` : "-"),
+      accessorFn: (row) =>
+        row.approved_amount
+          ? `₱${Number(row.approved_amount).toLocaleString()}`
+          : "-",
     },
     { header: "Rate", accessorFn: (row) => `${row.interest_rate}%` },
     {
       header: "Status",
       accessorKey: "status",
-      cell: ({ row }) => <Badge className={statusColors[row.original.status] || "bg-gray-100"}>{row.original.status}</Badge>,
+      cell: ({ row }) => (
+        <Badge className={statusColors[row.original.status] || "bg-gray-100"}>
+          {row.original.status}
+        </Badge>
+      ),
     },
-    { header: "Submitted", accessorFn: (row) => new Date(row.created_at).toLocaleDateString() },
+    {
+      header: "Submitted",
+      accessorFn: (row) => new Date(row.created_at).toLocaleDateString(),
+    },
     {
       header: "Actions",
       cell: ({ row }) => {
@@ -234,7 +272,12 @@ export default function ApplicationsPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/loans/${loan.id}`)} title="View Details">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/admin/loans/${loan.id}`)}
+              title="View Details"
+            >
               <Eye className="h-4 w-4 text-blue-500" />
             </Button>
 
@@ -289,47 +332,70 @@ export default function ApplicationsPage() {
                 }
               }}
             >
-              <SelectTrigger className="w-[140px] text-sm border-gray-100" title="Change Status">
+              <SelectTrigger
+                className="w-[140px] text-sm border-gray-100"
+                title="Change Status"
+              >
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
 
               <SelectContent>
-                <SelectItem value="pending" disabled={loan.status === "completed" || loan.status === "defaulted"}>
+                <SelectItem
+                  value="pending"
+                  disabled={
+                    loan.status === "completed" || loan.status === "defaulted"
+                  }
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-yellow-500" />
                     Pending
                   </span>
                 </SelectItem>
 
-                <SelectItem value="approved" disabled={loan.status !== "pending"}>
+                <SelectItem
+                  value="approved"
+                  disabled={loan.status !== "pending"}
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-blue-600" />
                     Approved
                   </span>
                 </SelectItem>
 
-                <SelectItem value="rejected" disabled={loan.status !== "pending"}>
+                <SelectItem
+                  value="rejected"
+                  disabled={loan.status !== "pending"}
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-red-600" />
                     Rejected
                   </span>
                 </SelectItem>
 
-                <SelectItem value="active" disabled={loan.status !== "approved"}>
+                <SelectItem
+                  value="active"
+                  disabled={loan.status !== "approved"}
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-green-600" />
                     Active
                   </span>
                 </SelectItem>
 
-                <SelectItem value="completed" disabled={loan.status !== "active"}>
+                <SelectItem
+                  value="completed"
+                  disabled={loan.status !== "active"}
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-gray-600" />
                     Completed
                   </span>
                 </SelectItem>
 
-                <SelectItem value="defaulted" disabled={loan.status !== "completed"}>
+                <SelectItem
+                  value="defaulted"
+                  disabled={loan.status !== "completed"}
+                >
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-black" />
                     Defaulted
@@ -355,7 +421,12 @@ export default function ApplicationsPage() {
     router,
   )
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    )
   if (!authenticated || !["admin", "loan_officer"].includes(user?.role || "")) {
     router.push("/dashboard")
     return null
@@ -386,12 +457,16 @@ export default function ApplicationsPage() {
       })
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: "Failed to activate loan" }))
+        const error = await res
+          .json()
+          .catch(() => ({ message: "Failed to activate loan" }))
         throw new Error(error.message || "Failed to activate loan")
       }
 
       const data = await res.json()
-      toast.success("Loan activated successfully", { description: data.message })
+      toast.success("Loan activated successfully", {
+        description: data.message,
+      })
       setShowActivateModal(false)
       setActivateStartDate("")
       setActivateFirstPaymentDate("")
@@ -434,7 +509,9 @@ export default function ApplicationsPage() {
       })
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: "Failed to approve loan" }))
+        const error = await res
+          .json()
+          .catch(() => ({ message: "Failed to approve loan" }))
         throw new Error(error.message || "Failed to approve loan")
       }
 
@@ -479,12 +556,16 @@ export default function ApplicationsPage() {
       })
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: "Failed to reject loan" }))
+        const error = await res
+          .json()
+          .catch(() => ({ message: "Failed to reject loan" }))
         throw new Error(error.message || "Failed to reject loan")
       }
 
       const data = await res.json()
-      toast.success("Success", { description: data.message || "Loan rejected successfully" })
+      toast.success("Success", {
+        description: data.message || "Loan rejected successfully",
+      })
 
       setRejectionReason("")
       setSelectedApp(null)
@@ -525,22 +606,30 @@ export default function ApplicationsPage() {
         })
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ message: "Failed to activate loan" }))
+          const err = await res
+            .json()
+            .catch(() => ({ message: "Failed to activate loan" }))
           throw new Error(err.message || "Failed to activate loan")
         }
 
         const data = await res.json()
-        toast.success("Loan activated successfully", { description: data.message })
+        toast.success("Loan activated successfully", {
+          description: data.message,
+        })
       } else {
         // Use normal update API for other statuses
         const payload: Record<string, any> = {}
 
         if (status && status !== selectedApp.status) payload.status = status
         if (notes !== "") payload.notes = notes
-        if (status === "approved" && approvedAmount !== "") payload.approved_amount = Number(approvedAmount)
-        if (status === "approved" && interestRate !== "") payload.interest_rate = Number(interestRate)
-        if (user?.role === "admin" && selectedLenderId) payload.lender_id = selectedLenderId
-        if (status === "rejected" && rejectionReason !== "") payload.rejection_reason = rejectionReason
+        if (status === "approved" && approvedAmount !== "")
+          payload.approved_amount = Number(approvedAmount)
+        if (status === "approved" && interestRate !== "")
+          payload.interest_rate = Number(interestRate)
+        if (user?.role === "admin" && selectedLenderId)
+          payload.lender_id = selectedLenderId
+        if (status === "rejected" && rejectionReason !== "")
+          payload.rejection_reason = rejectionReason
 
         const res = await fetch(`/api/loans/${selectedApp.id}`, {
           method: "PUT",
@@ -590,27 +679,49 @@ export default function ApplicationsPage() {
       <main className="flex-1 ml-64 bg-background min-h-screen">
         <header className="border-b border-border bg-card sticky top-0 z-40">
           <div className="px-8 py-6">
-            <h1 className="text-3xl font-bold text-primary">Loan Applications</h1>
-            <p className="text-muted-foreground mt-1">Review and process pending applications</p>
+            <h1 className="text-3xl font-bold text-primary">
+              Loan Applications
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Review and process pending applications
+            </p>
           </div>
         </header>
 
         <div className="px-8 mt-8 grid grid-cols-4 gap-4 mb-6">
           <Card className="p-4 text-center">
-            <h3 className="text-sm font-medium text-muted-foreground">Total Loans</h3>
-            <p className="text-xl font-bold">{statsLoading ? "..." : (loanStats?.total_loans ?? 0)}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Total Loans
+            </h3>
+            <p className="text-xl font-bold">
+              {statsLoading ? "..." : (loanStats?.total_loans ?? 0)}
+            </p>
           </Card>
           <Card className="p-4 text-center">
-            <h3 className="text-sm font-medium text-muted-foreground">Pending Loans</h3>
-            <p className="text-xl font-bold">{statsLoading ? "..." : (loanStats?.pending_loans ?? 0)}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Pending Loans
+            </h3>
+            <p className="text-xl font-bold">
+              {statsLoading ? "..." : (loanStats?.pending_loans ?? 0)}
+            </p>
           </Card>
           <Card className="p-4 text-center">
-            <h3 className="text-sm font-medium text-muted-foreground">Active Loans</h3>
-            <p className="text-xl font-bold">{statsLoading ? "..." : (loanStats?.active_loans ?? 0)}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Active Loans
+            </h3>
+            <p className="text-xl font-bold">
+              {statsLoading ? "..." : (loanStats?.active_loans ?? 0)}
+            </p>
           </Card>
           <Card className="p-4 text-center">
-            <h3 className="text-sm font-medium text-muted-foreground">Total Disbursed</h3>
-            <p className="text-xl font-bold">{statsLoading ? "..." : `₱${Number(loanStats?.total_disbursed ?? 0).toLocaleString()}`}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Total Disbursed
+            </h3>
+            <p className="text-xl font-bold">
+              {statsLoading
+                ? "..."
+                : `₱${Number(loanStats?.total_disbursed ?? 0).toLocaleString()}`}
+            </p>
           </Card>
         </div>
 
@@ -633,14 +744,25 @@ export default function ApplicationsPage() {
 
             <div className="space-y-4 mt-2">
               <div className="space-y-1">
-                <label htmlFor="activateStartDate" className="text-sm font-medium">
+                <label
+                  htmlFor="activateStartDate"
+                  className="text-sm font-medium"
+                >
                   Start Date
                 </label>
-                <Input id="activateStartDate" type="date" value={activateStartDate} onChange={(e) => setActivateStartDate(e.target.value)} />
+                <Input
+                  id="activateStartDate"
+                  type="date"
+                  value={activateStartDate}
+                  onChange={(e) => setActivateStartDate(e.target.value)}
+                />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="activateFirstPaymentDate" className="text-sm font-medium">
+                <label
+                  htmlFor="activateFirstPaymentDate"
+                  className="text-sm font-medium"
+                >
                   First Payment Date
                 </label>
                 <Input
@@ -652,18 +774,33 @@ export default function ApplicationsPage() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="activateFirstPaymentDate" className="text-sm font-medium">
+                <label
+                  htmlFor="activateFirstPaymentDate"
+                  className="text-sm font-medium"
+                >
                   Note
                 </label>
-                <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <Textarea
+                  placeholder="Notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
               </div>
-              <Button className="w-full" onClick={handleActivate} disabled={activating}>
-                <CheckCircle2 className="h-4 w-4 mr-2" /> {activating ? "Activating..." : "Activate Loan"}
+              <Button
+                className="w-full"
+                onClick={handleActivate}
+                disabled={activating}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />{" "}
+                {activating ? "Activating..." : "Activate Loan"}
               </Button>
             </div>
 
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowActivateModal(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setShowActivateModal(false)}
+              >
                 Cancel
               </Button>
             </DialogFooter>
@@ -681,7 +818,10 @@ export default function ApplicationsPage() {
             {user?.role === "admin" && (
               <div className="space-y-1">
                 <Label>Assign Lender</Label>
-                <Select value={selectedLenderId?.toString() || ""} onValueChange={(val) => setSelectedLenderId(Number(val))}>
+                <Select
+                  value={selectedLenderId?.toString() || ""}
+                  onValueChange={(val) => setSelectedLenderId(Number(val))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Lender" />
                   </SelectTrigger>
@@ -694,7 +834,8 @@ export default function ApplicationsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  This is optional. If left unassigned, a lender may assign the loan to themselves later.
+                  This is optional. If left unassigned, a lender may assign the
+                  loan to themselves later.
                 </p>
               </div>
             )}
@@ -738,8 +879,16 @@ export default function ApplicationsPage() {
               <DialogTitle>Reject Loan #{selectedApp?.id}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Textarea placeholder="Rejection Reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} />
-              <Button className="w-full" onClick={handleReject} variant="destructive">
+              <Textarea
+                placeholder="Rejection Reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+              <Button
+                className="w-full"
+                onClick={handleReject}
+                variant="destructive"
+              >
                 <XCircle className="h-4 w-4 mr-2" /> Reject
               </Button>
             </div>
@@ -762,9 +911,18 @@ export default function ApplicationsPage() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {["pending", "approved", "rejected", "active", "completed", "defaulted"].map((s) => (
+                    {[
+                      "pending",
+                      "approved",
+                      "rejected",
+                      "active",
+                      "completed",
+                      "defaulted",
+                    ].map((s) => (
                       <SelectItem key={s} value={s}>
-                        <span className={`h-2 w-2 rounded-full ${statusDot[s]}`} />
+                        <span
+                          className={`h-2 w-2 rounded-full ${statusDot[s]}`}
+                        />
                         {s.charAt(0).toUpperCase() + s.slice(1)}
                       </SelectItem>
                     ))}
@@ -774,7 +932,8 @@ export default function ApplicationsPage() {
 
               {(() => {
                 // Determine what fields to show based on status
-                const isPendingOrApproved = status === "pending" || status === "approved"
+                const isPendingOrApproved =
+                  status === "pending" || status === "approved"
                 const isRejected = status === "rejected"
                 const isActive = status === "active"
                 const isCompleted = status === "completed"
@@ -783,41 +942,66 @@ export default function ApplicationsPage() {
                 return (
                   <>
                     {/* Lender Assignment (Admin only) */}
-                    {user?.role === "admin" && (isPendingOrApproved || isActive) && (
-                      <div className="space-y-1">
-                        <Label>Assign Lender</Label>
-                        <Select value={selectedLenderId?.toString() || ""} onValueChange={(val) => setSelectedLenderId(Number(val))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Lender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {lenders.map((lender) => (
-                              <SelectItem key={lender.id} value={lender.id.toString()}>
-                                {lender.first_name} {lender.last_name} ({lender.email})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">Optional. If unassigned, a lender may assign the loan to themselves later.</p>
-                      </div>
-                    )}
+                    {user?.role === "admin" &&
+                      (isPendingOrApproved || isActive) && (
+                        <div className="space-y-1">
+                          <Label>Assign Lender</Label>
+                          <Select
+                            value={selectedLenderId?.toString() || ""}
+                            onValueChange={(val) =>
+                              setSelectedLenderId(Number(val))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Lender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lenders.map((lender) => (
+                                <SelectItem
+                                  key={lender.id}
+                                  value={lender.id.toString()}
+                                >
+                                  {lender.first_name} {lender.last_name} (
+                                  {lender.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Optional. If unassigned, a lender may assign the
+                            loan to themselves later.
+                          </p>
+                        </div>
+                      )}
 
                     {/* Approved Amount & Interest Rate */}
                     {isPendingOrApproved && (
                       <>
                         <div>
                           <Label>Approved Amount</Label>
-                          <Input type="number" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                          <Input
+                            type="number"
+                            value={approvedAmount}
+                            onChange={(e) => setApprovedAmount(e.target.value)}
+                          />
                         </div>
 
                         <div>
                           <Label>Interest Rate (%)</Label>
-                          <Input type="number" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} />
+                          <Input
+                            type="number"
+                            value={interestRate}
+                            onChange={(e) => setInterestRate(e.target.value)}
+                          />
                         </div>
 
                         <div>
                           <Label>Notes</Label>
-                          <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                          <Textarea
+                            placeholder="Notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                          />
                         </div>
                       </>
                     )}
@@ -826,7 +1010,11 @@ export default function ApplicationsPage() {
                     {isRejected && (
                       <div>
                         <Label>Rejection Reason</Label>
-                        <Textarea placeholder="Rejection Reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} />
+                        <Textarea
+                          placeholder="Rejection Reason"
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                        />
                       </div>
                     )}
 
@@ -835,17 +1023,33 @@ export default function ApplicationsPage() {
                       <>
                         <div className="space-y-1">
                           <Label>Start Date</Label>
-                          <Input type="date" value={activateStartDate} onChange={(e) => setActivateStartDate(e.target.value)} />
+                          <Input
+                            type="date"
+                            value={activateStartDate}
+                            onChange={(e) =>
+                              setActivateStartDate(e.target.value)
+                            }
+                          />
                         </div>
 
                         <div className="space-y-1">
                           <Label>First Payment Date</Label>
-                          <Input type="date" value={activateFirstPaymentDate} onChange={(e) => setActivateFirstPaymentDate(e.target.value)} />
+                          <Input
+                            type="date"
+                            value={activateFirstPaymentDate}
+                            onChange={(e) =>
+                              setActivateFirstPaymentDate(e.target.value)
+                            }
+                          />
                         </div>
 
                         <div>
                           <Label>Notes</Label>
-                          <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                          <Textarea
+                            placeholder="Notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                          />
                         </div>
                       </>
                     )}
@@ -854,14 +1058,22 @@ export default function ApplicationsPage() {
                     {(isCompleted || isDefaulted) && (
                       <div>
                         <Label>Notes</Label>
-                        <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                        <Textarea
+                          placeholder="Notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                        />
                       </div>
                     )}
                   </>
                 )
               })()}
 
-              <Button className="w-full" onClick={handleUpdateLoan} disabled={updating}>
+              <Button
+                className="w-full"
+                onClick={handleUpdateLoan}
+                disabled={updating}
+              >
                 {updating ? "Updating..." : "Update Loan"}
               </Button>
             </div>

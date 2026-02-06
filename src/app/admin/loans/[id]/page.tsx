@@ -23,6 +23,8 @@ interface Loan {
   rejection_reason?: string
   start_date?: string
   first_payment_date?: string
+  approved_at?: string
+  disbursement_date?: string
   outstanding_balance?: string
   created_at: string
   updated_at: string
@@ -75,7 +77,7 @@ export default function LoanDetailPage() {
         if (!res.ok) throw new Error("Failed to load loan")
 
         const data = await res.json()
-        setLoan(data.loan)
+        setLoan(data.loans[0] || data.loans || data)
       } catch {
         toast.error("Failed to load loan details")
         router.push("/admin/loans")
@@ -86,7 +88,7 @@ export default function LoanDetailPage() {
 
     fetchLoan()
   }, [id, router])
-
+  console.log("saved loans", loan)
   const downloadDocument = async (docId: number, fileName?: string) => {
     setDownloading(docId)
     try {
@@ -132,7 +134,7 @@ export default function LoanDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Loan Details</h1>
-                <p className="text-muted-foreground mt-1">Loan #{loan.loan_number}</p>
+                <p className="text-muted-foreground mt-1">Loan #{loan.id}</p>
               </div>
 
               <Badge className={statusColors[loan.status] || "bg-gray-100"}>{loan.status}</Badge>
@@ -261,7 +263,7 @@ export default function LoanDetailPage() {
           </Card>
 
           {/* Documents */}
-          {loan.documents?.length > 0 && (
+          {(loan?.documents && loan?.documents?.length > 0) && (
             <Card className="p-6 space-y-4 gap-0">
               <h2 className="text-lg font-semibold">Documents</h2>
 

@@ -243,7 +243,7 @@ export default function LenderLoansPage() {
 
     setShowUpdateModal(true)
   }
-
+  console.log(selectedLoan?.status)
   const handleUpdateLoan = async () => {
     if (!selectedLoan) return
     setUpdating(true)

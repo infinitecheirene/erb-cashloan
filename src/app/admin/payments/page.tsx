@@ -34,6 +34,7 @@ interface Loan {
   outstanding_balance?: string
   employment_status?: string
   borrower?: {
+    name: string
     first_name: string
     last_name: string
     email?: string
@@ -61,15 +62,22 @@ interface Loan {
 interface Payment {
   id: number
   transaction_id: string
+  payment_date?: string
   amount: string
   due_date: string
+  paid_date?: string
   status: string
   loan?: Loan
   loan_id: string
+  notes?: string
   days_late: string
   late_fee: string
   payment_method: string
   created_at: string
+  proof_of_payment?: string
+  verified_at?: string
+  rejection_reason?: string
+  updated_at?: string
 }
 
 export default function AdminPaymentsPage() {
@@ -443,11 +451,11 @@ export default function AdminPaymentsPage() {
 
               <div>
                 <p className="text-gray-600">Approved Amount</p>
-                <p className="font-medium text-green-700">₱{parseFloat(selectedPayment?.loan?.approved_amount).toLocaleString()}</p>
+                <p className="font-medium text-green-700">₱{parseFloat(selectedPayment?.loan?.approved_amount ?? "0").toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-600">Outstanding</p>
-                <p className="font-medium text-red-600">₱{parseFloat(selectedPayment?.loan?.outstanding_balance).toLocaleString()}</p>
+                <p className="font-medium text-red-600">₱{parseFloat(selectedPayment?.loan?.outstanding_balance ?? "0").toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-600">Interest Rate</p>
@@ -483,11 +491,11 @@ export default function AdminPaymentsPage() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
                 <p className="text-gray-600">Amount</p>
-                <p className="font-medium text-green-800">₱{parseFloat(selectedPayment?.amount).toLocaleString()}</p>
+                <p className="font-medium text-green-800">₱{parseFloat(selectedPayment?.amount ?? "0").toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-600">Late Fee</p>
-                <p className="font-medium text-red-600">₱{parseFloat(selectedPayment?.late_fee).toLocaleString()}</p>
+                <p className="font-medium text-red-600">₱{parseFloat(selectedPayment?.late_fee ?? "0").toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-600">Days Late</p>
@@ -495,7 +503,7 @@ export default function AdminPaymentsPage() {
               </div>
               <div>
                 <p className="text-gray-600">Due Date</p>
-                <p className="font-medium">{new Date(selectedPayment?.due_date).toLocaleDateString()}</p>
+                <p className="font-medium">{new Date(selectedPayment?.due_date ?? "-").toLocaleDateString()}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-gray-600">Status</p>
@@ -509,10 +517,6 @@ export default function AdminPaymentsPage() {
             <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Transaction</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p className="text-gray-600">Paid By</p>
-                <p className="font-medium">{selectedPayment?.paid_by ?? "-"}</p>
-              </div>
-              <div>
                 <p className="text-gray-600">Method</p>
                 <p className="font-medium capitalize">{selectedPayment?.payment_method ?? "-"}</p>
               </div>
@@ -525,9 +529,9 @@ export default function AdminPaymentsPage() {
                 <p className="font-medium">{selectedPayment?.paid_date ? new Date(selectedPayment?.paid_date).toLocaleDateString() : "-"}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-gray-600">Reference / Notes</p>
+                <p className="text-gray-600">Notes</p>
                 <p className="font-medium">
-                  {selectedPayment?.reference_number ?? "-"} {selectedPayment?.notes ? `| ${selectedPayment?.notes}` : ""}
+                  {selectedPayment?.notes ? `| ${selectedPayment?.notes}` : ""}
                 </p>
               </div>
             </div>
@@ -544,7 +548,7 @@ export default function AdminPaymentsPage() {
                     <p className="text-sm text-muted-foreground">Proof of Payment</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => downloadFile(selectedPayment.id)}>
+                <Button variant="ghost" size="sm" onClick={() => downloadFile(String(selectedPayment.id))}>
                   <Download className="h-4 w-4" />
                 </Button>
               </div>
@@ -565,11 +569,11 @@ export default function AdminPaymentsPage() {
           <div className="border rounded-md p-4 bg-gray-50 text-sm">
             <p>
               <span className="text-gray-600">Created: </span>
-              <span className="font-medium">{new Date(selectedPayment?.created_at).toLocaleString()}</span>
+              <span className="font-medium">{new Date(selectedPayment?.created_at ?? "").toLocaleString()}</span>
             </p>
             <p>
               <span className="text-gray-600">Updated: </span>
-              <span className="font-medium">{new Date(selectedPayment?.updated_at).toLocaleString()}</span>
+              <span className="font-medium">{new Date(selectedPayment?.updated_at ?? "").toLocaleString()}</span>
             </p>
           </div>
           {selectedPayment?.status === "awaiting_verification" && (
