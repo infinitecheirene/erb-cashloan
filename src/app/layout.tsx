@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/components/auth-context"
-import { Navbar } from "@/components/navbar"
 import "./globals.css"
 import { Toaster } from "sonner"
 
@@ -43,7 +42,6 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <AuthProvider>
           <Toaster richColors position="top-right" />
-          <Navbar />
           {children}
         </AuthProvider>
         <Analytics />

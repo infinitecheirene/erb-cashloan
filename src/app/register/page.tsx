@@ -78,7 +78,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <div className="p-8">
           <div className="text-center mb-8">
@@ -163,6 +163,6 @@ export default function RegisterPage() {
           </p>
         </div>
       </Card>
-    </div>
+    </main>
   );
 }
