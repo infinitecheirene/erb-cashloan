@@ -1,414 +1,446 @@
-'use client';
+"use client"
 
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, X, FileText, Camera, Upload, ChevronRight, ChevronLeft, Check } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { AlertCircle, X, FileText, Camera, Upload, ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { toast } from "sonner"
 
 interface UploadedFile {
-  name: string;
-  file: File;
-  type: string;
+  name: string
+  file: File
+  type: string
 }
 
 const STEPS = [
-  { id: 1, name: 'Loan Details', description: 'Tell us about your loan' },
-  { id: 2, name: 'Employment', description: 'Your employment information' },
-  { id: 3, name: 'Documents', description: 'Upload required documents' },
-  { id: 4, name: 'Review', description: 'Review and submit' },
-];
+  { id: 1, name: "Loan Details", description: "Tell us about your loan" },
+  { id: 2, name: "Employment", description: "Your employment information" },
+  { id: 3, name: "Documents", description: "Upload required documents" },
+  { id: 4, name: "Review", description: "Review and submit" },
+]
 
 export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
-    type: '',
-    principal_amount: '',
-    interest_rate: '5',
-    term_months: '12',
-    purpose: '',
-    employment_status: '',
-  });
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+    type: "",
+    principal_amount: "",
+    interest_rate: "5",
+    term_months: "12",
+    purpose: "",
+    employment_status: "",
+  })
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [agreements, setAgreements] = useState({
     dataPrivacy: false,
     loanAgreement: false,
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { toast } = useToast();
+  })
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fileType: string) => {
-    const files = e.target.files;
-    if (!files) return;
+    const files = e.target.files
+    if (!files) return
 
     const newFiles: UploadedFile[] = Array.from(files).map((file) => ({
       name: file.name,
       file,
       type: fileType,
-    }));
+    }))
 
-    setUploadedFiles((prev) => [...prev, ...newFiles]);
-    
+    setUploadedFiles((prev) => [...prev, ...newFiles])
+
     // Show success toast
-    toast({
-      title: "File uploaded",
+    toast("File uploaded", {
       description: `${newFiles.length} file(s) added successfully`,
-    });
-  };
+    })
+  }
 
   const removeFile = (index: number) => {
-    const removedFile = uploadedFiles[index];
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-    
-    toast({
-      title: "File removed",
+    const removedFile = uploadedFiles[index]
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+
+    toast("File removed", {
       description: `${removedFile.name} has been removed`,
-      variant: "destructive",
-    });
-  };
+    })
+  }
 
   // Camera functions
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' },
-        audio: false 
-      });
-      setStream(mediaStream);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      })
+      setStream(mediaStream)
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        videoRef.current.srcObject = mediaStream
       }
-      setShowCamera(true);
+      setShowCamera(true)
     } catch (err) {
-      toast({
-        title: "Camera Error",
+      toast.error("Camera Error", {
         description: "Unable to access camera. Please check permissions or upload a photo instead.",
-        variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+      stream.getTracks().forEach((track) => track.stop())
+      setStream(null)
     }
-    setShowCamera(false);
-  };
+    setShowCamera(false)
+  }
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const context = canvas.getContext('2d');
+      const video = videoRef.current
+      const canvas = canvasRef.current
+
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      const context = canvas.getContext("2d")
       if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `selfie_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setUploadedFiles((prev) => [...prev, {
-              name: file.name,
-              file,
-              type: 'selfie_with_id',
-            }]);
-            stopCamera();
-            
-            toast({
-              title: "Photo captured",
-              description: "Selfie added successfully",
-            });
-          }
-        }, 'image/jpeg', 0.95);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], `selfie_${Date.now()}.jpg`, { type: "image/jpeg" })
+              setUploadedFiles((prev) => [
+                ...prev,
+                {
+                  name: file.name,
+                  file,
+                  type: "selfie_with_id",
+                },
+              ])
+              stopCamera()
+
+              toast.success("Photo captured", {
+                description: "Selfie added successfully",
+              })
+            }
+          },
+          "image/jpeg",
+          0.95,
+        )
       }
     }
-  };
+  }
 
   const getRequiredDocuments = () => {
-    const { type: loanType, employment_status } = formData;
-    
+    const { type: loanType, employment_status } = formData
+
     const baseDocuments = [
-      { 
-        id: 'valid_id', 
-        label: 'Valid Government-issued ID', 
-        required: true, 
+      {
+        id: "valid_id",
+        label: "Valid Government-issued ID",
+        required: true,
         allowCamera: false,
-        category: 'Base Requirements'
+        category: "Base Requirements",
       },
-      { 
-        id: 'selfie_with_id', 
-        label: 'Selfie holding the ID', 
-        required: loanType === 'personal',
+      {
+        id: "selfie_with_id",
+        label: "Selfie holding the ID",
+        required: loanType === "personal",
         allowCamera: true,
-        category: 'Base Requirements'
+        category: "Base Requirements",
       },
-      { 
-        id: 'proof_of_address', 
-        label: 'Proof of Address (Utility bill, Bank statement, etc.)', 
-        required: true, 
+      {
+        id: "proof_of_address",
+        label: "Proof of Address (Utility bill, Bank statement, etc.)",
+        required: true,
         allowCamera: false,
-        category: 'Base Requirements'
+        category: "Base Requirements",
       },
-    ];
+    ]
 
     const businessDocuments = [
-      { id: 'dti_sec', label: 'DTI Permit / SEC Registration', required: true, allowCamera: false, category: 'Business Documents' },
-      { id: 'business_bank_statement', label: 'Latest 3-6 months Business Bank Statement', required: true, allowCamera: false, category: 'Business Documents' },
-      { id: 'business_photos', label: 'Business or Inventory Photos', required: true, allowCamera: true, category: 'Business Documents' },
-      { id: 'business_proof', label: 'Proof of Business Existence', required: false, allowCamera: false, category: 'Business Documents' },
-    ];
+      { id: "dti_sec", label: "DTI Permit / SEC Registration", required: true, allowCamera: false, category: "Business Documents" },
+      {
+        id: "business_bank_statement",
+        label: "Latest 3-6 months Business Bank Statement",
+        required: true,
+        allowCamera: false,
+        category: "Business Documents",
+      },
+      { id: "business_photos", label: "Business or Inventory Photos", required: true, allowCamera: true, category: "Business Documents" },
+      { id: "business_proof", label: "Proof of Business Existence", required: false, allowCamera: false, category: "Business Documents" },
+    ]
 
     const employedDocuments = [
-      { id: 'payslip', label: 'Latest Payslip', required: true, allowCamera: false, category: 'Employment Documents' },
-      { id: 'coe', label: 'Certificate of Employment with Compensation', required: true, allowCamera: false, category: 'Employment Documents' },
-      { id: 'personal_bank_statement', label: 'Latest 3 months Personal Bank Statements', required: true, allowCamera: false, category: 'Employment Documents' },
-    ];
+      { id: "payslip", label: "Latest Payslip", required: true, allowCamera: false, category: "Employment Documents" },
+      { id: "coe", label: "Certificate of Employment with Compensation", required: true, allowCamera: false, category: "Employment Documents" },
+      {
+        id: "personal_bank_statement",
+        label: "Latest 3 months Personal Bank Statements",
+        required: true,
+        allowCamera: false,
+        category: "Employment Documents",
+      },
+    ]
 
     const selfEmployedDocuments = [
-      { id: 'income_proof', label: 'Proof of Income (Invoices, Contracts, Client payments)', required: true, allowCamera: false, category: 'Self-Employment Documents' },
-      { id: 'personal_bank_statement', label: 'Latest 3-6 months Personal Bank Statements', required: true, allowCamera: false, category: 'Self-Employment Documents' },
-      { id: 'bir_cert', label: 'BIR Certificate of Registration (Optional)', required: false, allowCamera: false, category: 'Self-Employment Documents' },
-      { id: 'portfolio_work', label: 'Portfolio or Work Samples (Optional)', required: false, allowCamera: false, category: 'Self-Employment Documents' },
-    ];
+      {
+        id: "income_proof",
+        label: "Proof of Income (Invoices, Contracts, Client payments)",
+        required: true,
+        allowCamera: false,
+        category: "Self-Employment Documents",
+      },
+      {
+        id: "personal_bank_statement",
+        label: "Latest 3-6 months Personal Bank Statements",
+        required: true,
+        allowCamera: false,
+        category: "Self-Employment Documents",
+      },
+      {
+        id: "bir_cert",
+        label: "BIR Certificate of Registration (Optional)",
+        required: false,
+        allowCamera: false,
+        category: "Self-Employment Documents",
+      },
+      {
+        id: "portfolio_work",
+        label: "Portfolio or Work Samples (Optional)",
+        required: false,
+        allowCamera: false,
+        category: "Self-Employment Documents",
+      },
+    ]
 
     const studentDocuments = [
-      { id: 'school_id', label: 'Valid School ID', required: true, allowCamera: false, category: 'Student Documents' },
-      { id: 'enrollment_proof', label: 'Certificate of Registration / Enrollment', required: true, allowCamera: false, category: 'Student Documents' },
-      { id: 'grades', label: 'Latest Report Card / Transcript of Records', required: true, allowCamera: false, category: 'Student Documents' },
-      { id: 'parent_id', label: 'Parent/Guardian Valid ID', required: true, allowCamera: false, category: 'Student Documents' },
-      { id: 'parent_income', label: 'Parent/Guardian Proof of Income', required: true, allowCamera: false, category: 'Student Documents' },
-    ];
+      { id: "school_id", label: "Valid School ID", required: true, allowCamera: false, category: "Student Documents" },
+      {
+        id: "enrollment_proof",
+        label: "Certificate of Registration / Enrollment",
+        required: true,
+        allowCamera: false,
+        category: "Student Documents",
+      },
+      { id: "grades", label: "Latest Report Card / Transcript of Records", required: true, allowCamera: false, category: "Student Documents" },
+      { id: "parent_id", label: "Parent/Guardian Valid ID", required: true, allowCamera: false, category: "Student Documents" },
+      { id: "parent_income", label: "Parent/Guardian Proof of Income", required: true, allowCamera: false, category: "Student Documents" },
+    ]
 
     const autoDocuments = [
-      { id: 'vehicle_details', label: 'Vehicle Details (Make, Model, Year)', required: true, allowCamera: false, category: 'Auto Loan Documents' },
-      { id: 'vehicle_quotation', label: 'Vehicle Quotation / Proforma Invoice', required: true, allowCamera: false, category: 'Auto Loan Documents' },
-      { id: 'drivers_license', label: 'Valid Driver\'s License', required: true, allowCamera: false, category: 'Auto Loan Documents' },
-    ];
+      { id: "vehicle_details", label: "Vehicle Details (Make, Model, Year)", required: true, allowCamera: false, category: "Auto Loan Documents" },
+      { id: "vehicle_quotation", label: "Vehicle Quotation / Proforma Invoice", required: true, allowCamera: false, category: "Auto Loan Documents" },
+      { id: "drivers_license", label: "Valid Driver's License", required: true, allowCamera: false, category: "Auto Loan Documents" },
+    ]
 
     const homeDocuments = [
-      { id: 'property_details', label: 'Property Details and Location', required: true, allowCamera: false, category: 'Home Loan Documents' },
-      { id: 'property_docs', label: 'Property Documents (Title, Tax Declaration)', required: true, allowCamera: false, category: 'Home Loan Documents' },
-      { id: 'property_appraisal', label: 'Property Appraisal / Market Value Assessment', required: true, allowCamera: false, category: 'Home Loan Documents' },
-      { id: 'property_photos', label: 'Property Photos', required: true, allowCamera: true, category: 'Home Loan Documents' },
-    ];
+      { id: "property_details", label: "Property Details and Location", required: true, allowCamera: false, category: "Home Loan Documents" },
+      {
+        id: "property_docs",
+        label: "Property Documents (Title, Tax Declaration)",
+        required: true,
+        allowCamera: false,
+        category: "Home Loan Documents",
+      },
+      {
+        id: "property_appraisal",
+        label: "Property Appraisal / Market Value Assessment",
+        required: true,
+        allowCamera: false,
+        category: "Home Loan Documents",
+      },
+      { id: "property_photos", label: "Property Photos", required: true, allowCamera: true, category: "Home Loan Documents" },
+    ]
 
-    let documents = [...baseDocuments];
+    let documents = [...baseDocuments]
 
-    if (loanType === 'student') {
-      return [...baseDocuments, ...studentDocuments];
+    if (loanType === "student") {
+      return [...baseDocuments, ...studentDocuments]
     }
 
-    if (loanType === 'auto') {
-      documents = [...documents, ...autoDocuments];
+    if (loanType === "auto") {
+      documents = [...documents, ...autoDocuments]
     }
 
-    if (loanType === 'home') {
-      documents = [...documents, ...homeDocuments];
+    if (loanType === "home") {
+      documents = [...documents, ...homeDocuments]
     }
 
-    if (employment_status === 'business_owner') {
-      documents = [...documents, ...businessDocuments];
-    } else if (employment_status === 'employed') {
-      documents = [...documents, ...employedDocuments];
-    } else if (employment_status === 'self_employed') {
-      documents = [...documents, ...selfEmployedDocuments];
+    if (employment_status === "business_owner") {
+      documents = [...documents, ...businessDocuments]
+    } else if (employment_status === "employed") {
+      documents = [...documents, ...employedDocuments]
+    } else if (employment_status === "self_employed") {
+      documents = [...documents, ...selfEmployedDocuments]
     }
 
-    return documents;
-  };
+    return documents
+  }
 
   const validateStep = () => {
-    setError('');
-    
+    setError("")
+
     if (currentStep === 1) {
       if (!formData.type || !formData.principal_amount || !formData.term_months || !formData.purpose) {
-        setError('Please fill in all loan details');
-        toast({
-          title: "Validation Error",
+        setError("Please fill in all loan details")
+        toast.error("Validation Error", {
           description: "Please fill in all loan details",
-          variant: "destructive",
-        });
-        return false;
+        })
+        return false
       }
     }
-    
+
     if (currentStep === 2) {
-      if (formData.type !== 'student' && !formData.employment_status) {
-        setError('Please select your employment status');
-        toast({
-          title: "Validation Error",
+      if (formData.type !== "student" && !formData.employment_status) {
+        setError("Please select your employment status")
+        toast.error("Validation Error", {
           description: "Please select your employment status",
-          variant: "destructive",
-        });
-        return false;
+        })
+        return false
       }
     }
-    
+
     if (currentStep === 3) {
-      const requiredDocs = getRequiredDocuments();
-      const uploadedTypes = uploadedFiles.map((f) => f.type);
-      const missingDocs = requiredDocs.filter((doc) => doc.required && !uploadedTypes.includes(doc.id));
+      const requiredDocs = getRequiredDocuments()
+      const uploadedTypes = uploadedFiles.map((f) => f.type)
+      const missingDocs = requiredDocs.filter((doc) => doc.required && !uploadedTypes.includes(doc.id))
 
       if (missingDocs.length > 0) {
-        const errorMsg = `Missing required documents: ${missingDocs.map((d) => d.label).join(', ')}`;
-        setError(errorMsg);
-        toast({
-          title: "Missing Documents",
+        const errorMsg = `Missing required documents: ${missingDocs.map((d) => d.label).join(", ")}`
+        setError(errorMsg)
+        toast("Missing Documents", {
           description: errorMsg,
-          variant: "destructive",
-        });
-        return false;
+        })
+        return false
       }
     }
-    
-    return true;
-  };
+
+    return true
+  }
 
   const nextStep = () => {
     if (validateStep()) {
-      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
-      toast({
-        title: "Step completed",
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length))
+      toast.success("Step completed", {
         description: `Moving to step ${currentStep + 1}`,
-      });
+      })
     }
-  };
+  }
 
   const prevStep = () => {
-    setError('');
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
+    setError("")
+    setCurrentStep((prev) => Math.max(prev - 1, 1))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault()
+    setError("")
 
     if (!agreements.dataPrivacy || !agreements.loanAgreement) {
-      const errorMsg = 'Please accept all required agreements';
-      setError(errorMsg);
-      toast({
-        title: "Agreements Required",
+      const errorMsg = "Please accept all required agreements"
+      setError(errorMsg)
+      toast.error("Agreements Required", {
         description: errorMsg,
-        variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    setLoading(true);
-    
+    setLoading(true)
+
     // Show loading toast
-    toast({
-      title: "Submitting Application",
+    toast.success("Submitting Application", {
       description: "Please wait while we process your loan application...",
-    });
+    })
 
     try {
-      const token = localStorage.getItem('token');
-      const formDataToSend = new FormData();
+      const token = localStorage.getItem("token")
+      const formDataToSend = new FormData()
 
-      formDataToSend.append('type', formData.type);
-      formDataToSend.append('principal_amount', formData.principal_amount);
-      formDataToSend.append('interest_rate', formData.interest_rate);
-      formDataToSend.append('term_months', formData.term_months);
-      formDataToSend.append('purpose', formData.purpose);
-      formDataToSend.append('employment_status', formData.employment_status);
+      formDataToSend.append("type", formData.type)
+      formDataToSend.append("principal_amount", formData.principal_amount)
+      formDataToSend.append("interest_rate", formData.interest_rate)
+      formDataToSend.append("term_months", formData.term_months)
+      formDataToSend.append("purpose", formData.purpose)
+      formDataToSend.append("employment_status", formData.employment_status)
 
       uploadedFiles.forEach((uploadedFile, index) => {
-        formDataToSend.append(`documents[${index}][type]`, uploadedFile.type);
-        formDataToSend.append(`documents[${index}][file]`, uploadedFile.file);
-      });
+        formDataToSend.append(`documents[${index}][type]`, uploadedFile.type)
+        formDataToSend.append(`documents[${index}][file]`, uploadedFile.file)
+      })
 
-      const response = await fetch('/api/loans', {
-        method: 'POST',
+      const response = await fetch("/api/loans", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formDataToSend,
-      });
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to submit application');
+        const error = await response.json()
+        throw new Error(error.message || "Failed to submit application")
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       // Reset form
       setFormData({
-        type: '',
-        principal_amount: '',
-        interest_rate: '5',
-        term_months: '12',
-        purpose: '',
-        employment_status: '',
-      });
-      setUploadedFiles([]);
-      setAgreements({ dataPrivacy: false, loanAgreement: false });
-      setCurrentStep(1);
+        type: "",
+        principal_amount: "",
+        interest_rate: "5",
+        term_months: "12",
+        purpose: "",
+        employment_status: "",
+      })
+      setUploadedFiles([])
+      setAgreements({ dataPrivacy: false, loanAgreement: false })
+      setCurrentStep(1)
 
       // Show success toast
-      toast({
-        title: "Application Submitted!",
+      toast.success("Application Submitted!", {
         description: "Your loan application has been submitted successfully. We'll review it and get back to you soon.",
-      });
+      })
 
-      onSuccess();
+      onSuccess()
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit application';
-      setError(errorMessage);
-      
-      toast({
-        title: "Submission Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      const errorMessage = err instanceof Error ? err.message : "Failed to submit application"
+      setError(errorMessage)
 
-  type DocumentItem = ReturnType<typeof getRequiredDocuments>[number];
+      toast.error("Submission Failed",{
+        description: errorMessage,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  type DocumentItem = ReturnType<typeof getRequiredDocuments>[number]
   const groupedDocuments = getRequiredDocuments()
-    .filter(doc => doc.required || uploadedFiles.some(f => f.type === doc.id))
-    .reduce((acc, doc) => {
-      if (!acc[doc.category]) {
-        acc[doc.category] = [];
-      }
-      acc[doc.category].push(doc);
-      return acc;
-    }, {} as Record<string, DocumentItem[]>);
+    .filter((doc) => doc.required || uploadedFiles.some((f) => f.type === doc.id))
+    .reduce(
+      (acc, doc) => {
+        if (!acc[doc.category]) {
+          acc[doc.category] = []
+        }
+        acc[doc.category].push(doc)
+        return acc
+      },
+      {} as Record<string, DocumentItem[]>,
+    )
 
   return (
     <>
@@ -422,24 +454,20 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
                       currentStep > step.id
-                        ? 'bg-[#1e3a8a] text-white'
+                        ? "bg-[#1e3a8a] text-white"
                         : currentStep === step.id
-                        ? 'bg-[#1e3a8a] text-white ring-4 ring-[#1e3a8a]/20'
-                        : 'bg-gray-200 text-gray-500'
+                          ? "bg-[#1e3a8a] text-white ring-4 ring-[#1e3a8a]/20"
+                          : "bg-gray-200 text-gray-500"
                     }`}
                   >
                     {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
                   </div>
                   <div className="mt-2 text-center">
-                    <p className={`text-xs font-medium ${currentStep >= step.id ? 'text-[#1e3a8a]' : 'text-gray-400'}`}>
-                      {step.name}
-                    </p>
+                    <p className={`text-xs font-medium ${currentStep >= step.id ? "text-[#1e3a8a]" : "text-gray-400"}`}>{step.name}</p>
                     <p className="text-xs text-gray-400 hidden sm:block">{step.description}</p>
                   </div>
                 </div>
-                {index < STEPS.length - 1 && (
-                  <div className={`h-0.5 flex-1 mx-4 ${currentStep > step.id ? 'bg-[#1e3a8a]' : 'bg-gray-200'}`} />
-                )}
+                {index < STEPS.length - 1 && <div className={`h-0.5 flex-1 mx-4 ${currentStep > step.id ? "bg-[#1e3a8a]" : "bg-gray-200"}`} />}
               </React.Fragment>
             ))}
           </div>
@@ -464,7 +492,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Loan Type *</Label>
-                  <Select value={formData.type} onValueChange={(value) => handleChange('type', value)} required>
+                  <Select value={formData.type} onValueChange={(value) => handleChange("type", value)} required>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select loan type" />
                     </SelectTrigger>
@@ -483,7 +511,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                   <Input
                     type="number"
                     value={formData.principal_amount}
-                    onChange={(e) => handleChange('principal_amount', e.target.value)}
+                    onChange={(e) => handleChange("principal_amount", e.target.value)}
                     placeholder="50,000"
                     min="5000"
                     max="5000000"
@@ -495,7 +523,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Term (Months) *</Label>
-                  <Select value={formData.term_months} onValueChange={(value) => handleChange('term_months', value)} required>
+                  <Select value={formData.term_months} onValueChange={(value) => handleChange("term_months", value)} required>
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -516,7 +544,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                 <Label className="text-sm font-medium text-gray-700">Loan Purpose *</Label>
                 <Textarea
                   value={formData.purpose}
-                  onChange={(e) => handleChange('purpose', e.target.value)}
+                  onChange={(e) => handleChange("purpose", e.target.value)}
                   placeholder="Please describe the purpose of this loan..."
                   className="mt-1 min-h-24"
                   required
@@ -533,10 +561,10 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                 <p className="text-sm text-gray-600">Tell us about your current employment status</p>
               </div>
 
-              {formData.type !== 'student' && (
+              {formData.type !== "student" && (
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Employment Status *</Label>
-                  <Select value={formData.employment_status} onValueChange={(value) => handleChange('employment_status', value)} required>
+                  <Select value={formData.employment_status} onValueChange={(value) => handleChange("employment_status", value)} required>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select your employment status" />
                     </SelectTrigger>
@@ -547,13 +575,11 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                       <SelectItem value="unemployed">Unemployed</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="mt-2 text-xs text-gray-500">
-                    This helps us determine which documents you'll need to provide
-                  </p>
+                  <p className="mt-2 text-xs text-gray-500">This helps us determine which documents you'll need to provide</p>
                 </div>
               )}
 
-              {formData.type === 'student' && (
+              {formData.type === "student" && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
                     As a student loan applicant, you'll need to provide student-related documents in the next step.
@@ -575,14 +601,14 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                 <div key={category} className="space-y-3">
                   <h4 className="text-sm font-semibold text-[#1e3a8a] bg-blue-50 px-3 py-2 rounded-md">{category}</h4>
                   {docs.map((doc) => {
-                    const docFiles = uploadedFiles.filter(f => f.type === doc.id);
-                    
+                    const docFiles = uploadedFiles.filter((f) => f.type === doc.id)
+
                     return (
                       <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#1e3a8a] transition-colors">
                         <Label htmlFor={doc.id} className="block mb-2 text-sm font-medium">
                           {doc.label} {doc.required && <span className="text-red-500">*</span>}
                         </Label>
-                        
+
                         <div className="flex gap-2">
                           {doc.allowCamera && (
                             <Button
@@ -595,8 +621,8 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                               Take Photo
                             </Button>
                           )}
-                          
-                          <Label htmlFor={doc.id} className={`${doc.allowCamera ? 'flex-1' : 'w-full'}`}>
+
+                          <Label htmlFor={doc.id} className={`${doc.allowCamera ? "flex-1" : "w-full"}`}>
                             <div className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:border-[#1e3a8a] hover:bg-blue-50 transition-colors">
                               <Upload className="w-4 h-4 text-[#1e3a8a]" />
                               <span className="text-sm font-medium text-[#1e3a8a]">Choose File</span>
@@ -615,9 +641,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                         {docFiles.length > 0 && (
                           <div className="mt-3 space-y-2">
                             {docFiles.map((file, index) => {
-                              const actualIndex = uploadedFiles.findIndex(
-                                f => f.file === file.file && f.type === file.type
-                              );
+                              const actualIndex = uploadedFiles.findIndex((f) => f.file === file.file && f.type === file.type)
                               return (
                                 <div key={index} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
                                   <div className="flex items-center gap-2">
@@ -634,12 +658,12 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                                     <X className="h-4 w-4 text-green-600" />
                                   </Button>
                                 </div>
-                              );
+                              )
                             })}
                           </div>
                         )}
                       </div>
-                    );
+                    )
                   })}
                 </div>
               ))}
@@ -658,10 +682,20 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Loan Details</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-gray-600">Type:</span> <span className="font-medium">{formData.type}</span></div>
-                    <div><span className="text-gray-600">Amount:</span> <span className="font-medium">₱{parseFloat(formData.principal_amount).toLocaleString()}</span></div>
-                    <div><span className="text-gray-600">Term:</span> <span className="font-medium">{formData.term_months} months</span></div>
-                    <div><span className="text-gray-600">Employment:</span> <span className="font-medium">{formData.employment_status || 'Student'}</span></div>
+                    <div>
+                      <span className="text-gray-600">Type:</span> <span className="font-medium">{formData.type}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Amount:</span>{" "}
+                      <span className="font-medium">₱{parseFloat(formData.principal_amount).toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Term:</span> <span className="font-medium">{formData.term_months} months</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Employment:</span>{" "}
+                      <span className="font-medium">{formData.employment_status || "Student"}</span>
+                    </div>
                   </div>
                   <div className="mt-2">
                     <span className="text-gray-600 text-sm">Purpose:</span>
@@ -683,18 +717,17 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
 
               <div className="space-y-4 border-t pt-4">
                 <h4 className="text-sm font-semibold text-gray-700">Agreements</h4>
-                
+
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="dataPrivacy"
                     checked={agreements.dataPrivacy}
-                    onCheckedChange={(checked) =>
-                      setAgreements((prev) => ({ ...prev, dataPrivacy: checked as boolean }))
-                    }
+                    onCheckedChange={(checked) => setAgreements((prev) => ({ ...prev, dataPrivacy: checked as boolean }))}
                     className="mt-1"
                   />
                   <Label htmlFor="dataPrivacy" className="text-sm leading-relaxed cursor-pointer">
-                    I agree to the <span className="text-[#1e3a8a] underline font-medium">Data Privacy Consent</span> and authorize the processing of my personal information
+                    I agree to the <span className="text-[#1e3a8a] underline font-medium">Data Privacy Consent</span> and authorize the processing of
+                    my personal information
                   </Label>
                 </div>
 
@@ -702,9 +735,7 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
                   <Checkbox
                     id="loanAgreement"
                     checked={agreements.loanAgreement}
-                    onCheckedChange={(checked) =>
-                      setAgreements((prev) => ({ ...prev, loanAgreement: checked as boolean }))
-                    }
+                    onCheckedChange={(checked) => setAgreements((prev) => ({ ...prev, loanAgreement: checked as boolean }))}
                     className="mt-1"
                   />
                   <Label htmlFor="loanAgreement" className="text-sm leading-relaxed cursor-pointer">
@@ -718,34 +749,21 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t">
             {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                className="gap-2"
-              >
+              <Button type="button" variant="outline" onClick={prevStep} className="gap-2">
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
             )}
-            
+
             <div className="ml-auto">
               {currentStep < STEPS.length ? (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className="gap-2 bg-[#1e3a8a] hover:bg-[#1e40af]"
-                >
+                <Button type="button" onClick={nextStep} className="gap-2 bg-[#1e3a8a] hover:bg-[#1e40af]">
                   Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="gap-2 bg-[#1e3a8a] hover:bg-[#1e40af]"
-                >
-                  {loading ? 'Submitting...' : 'Submit Application'}
+                <Button type="submit" disabled={loading} className="gap-2 bg-[#1e3a8a] hover:bg-[#1e40af]">
+                  {loading ? "Submitting..." : "Submit Application"}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               )}
@@ -759,23 +777,16 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Take Photo</DialogTitle>
-            <DialogDescription>
-              Position yourself clearly in the frame and click capture when ready
-            </DialogDescription>
+            <DialogDescription>Position yourself clearly in the frame and click capture when ready</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
             </div>
-            
+
             <canvas ref={canvasRef} className="hidden" />
-            
+
             <div className="flex gap-2">
               <Button onClick={capturePhoto} className="flex-1 bg-[#1e3a8a] hover:bg-[#1e40af]">
                 <Camera className="w-4 h-4 mr-2" />
@@ -789,5 +800,5 @@ export function LoanApplicationForm({ onSuccess }: { onSuccess: () => void }) {
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
