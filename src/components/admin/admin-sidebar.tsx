@@ -31,7 +31,6 @@ export function AdminSidebar() {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/loans", label: "Loans", icon: FileText },
     { href: "/admin/payments", label: "Payments", icon: CreditCard },
-    { href: "/admin/reports", label: "Reports", icon: User },
     { href: "/admin/users", label: "Users", icon: User },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
