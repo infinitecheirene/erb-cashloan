@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-context"
-import BorrowerDashboard from "./borrower/page"
-import AdminDashboard from "./admin/page"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 // import { LenderSidebar } from "@/components/lender/lender-sidebar"
 import { DollarSign, TrendingUp, FileText } from "lucide-react"
 import LenderDashboardPage from "../lender/page"
+import AdminDashboard from "@/components/admin/admin-dashboard"
+import BorrowerDashboard from "@/components/borrower/borrower-dashboard"
 
 // function StatCard({ title, value, icon }: any) {
 //   return (
