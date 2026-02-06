@@ -24,7 +24,6 @@ interface Loan {
   approved_amount?: string;
   borrower?: { first_name: string; last_name: string };
   lender?: { first_name: string; last_name: string };
-  loan_officer?: { first_name: string; last_name: string };
   payments?: any[];
 }
 
