@@ -9,6 +9,7 @@ import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LenderSidebar } from "@/components/lender/lender-sidebar"
 
 interface Payment {
   id: number
@@ -182,7 +183,7 @@ export default function BorrowerPage() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <AdminSidebar />
+      <LenderSidebar />
 
       {/* Main content */}
       <main className="flex-1 lg:ml-64 flex flex-col">
@@ -203,34 +204,32 @@ export default function BorrowerPage() {
             Back
           </Button>
 
-          <Tabs defaultValue="borrower" className="space-y-4">
-            <TabsList className="grid grid-cols-4 w-3xl">
-              <TabsTrigger value="borrower">Borrower Info</TabsTrigger>
+          <Card className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Borrower Information</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium">
+                  {borrower.first_name} {borrower.last_name}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{borrower.email || "-"}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Tabs defaultValue="loans" className="space-y-4">
+            <TabsList className="grid grid-cols-3 w-3xl">
               <TabsTrigger value="loans">Loans</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
 
-            {/*  BORROWER INFO  */}
-            <TabsContent value="borrower">
-              <Card className="p-6 space-y-4">
-                <h2 className="text-lg font-semibold">Borrower Information</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Name</p>
-                    <p className="font-medium">
-                      {borrower.first_name} {borrower.last_name}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{borrower.email || "-"}</p>
-                  </div>
-                </div>
-              </Card>
-            </TabsContent>
+           
 
             {/*  LOANS  */}
             <TabsContent value="loans" className="space-y-4">
