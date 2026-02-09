@@ -183,7 +183,7 @@ export default function BorrowerDashboard() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div>
         <p className="text-muted-foreground">Loading dashboard...</p>
       </div>
     )
@@ -191,7 +191,7 @@ export default function BorrowerDashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div>
         <p className="text-muted-foreground">User not found</p>
       </div>
     )
@@ -434,7 +434,7 @@ export default function BorrowerDashboard() {
                             ) ?? "—"}
                           </td>
                           <td className="px-4 py-2">
-                            {loanDetail?.outstanding_balance.toLocaleString(
+                            {loanDetail?.outstanding_balance?.toLocaleString(
                               "en-PH",
                               { style: "currency", currency: "PHP" },
                             ) ?? "—"}
@@ -500,14 +500,14 @@ export default function BorrowerDashboard() {
                         </td>
                         <td className="px-4 py-2">
                           {(
-                            l.principal_amount - l.outstanding_balance
+                            l?.principal_amount - l?.outstanding_balance
                           ).toLocaleString("en-PH", {
                             style: "currency",
                             currency: "PHP",
                           })}
                         </td>
                         <td className="px-4 py-2">
-                          {l.outstanding_balance.toLocaleString("en-PH", {
+                          {l?.outstanding_balance?.toLocaleString("en-PH", {
                             style: "currency",
                             currency: "PHP",
                           })}
