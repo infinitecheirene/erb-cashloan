@@ -140,7 +140,7 @@ export default function AdminSettingsPage() {
       <main className="max-w-8xl mx-8 md:mx-16 lg:mx-20 xl:mx-32">
         <div className="space-y-6">
           {/* Profile Picture Section */}
-          <Card className="mt-10 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="mt-10 gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
           </Card>
 
           {/* Personal Information Section */}
-          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -176,7 +176,7 @@ export default function AdminSettingsPage() {
           </Card>
 
           {/* Password Section */}
-          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-violet-50 rounded-lg">
