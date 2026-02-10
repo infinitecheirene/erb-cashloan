@@ -15,7 +15,8 @@ import {
     DollarSign,
     Calendar,
     ArrowLeft,
-    XCircle
+    XCircle,
+    Printer
 } from "lucide-react"
 
 interface Payment {
@@ -67,7 +68,7 @@ export default function PaymentHistoryPage() {
             const token = localStorage.getItem("token")
 
             console.log("Fetching loan ID:", loanId)
-            
+
             // Fetch specific loan
             const loansRes = await fetch(`/api/loans/${loanId}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -157,6 +158,43 @@ export default function PaymentHistoryPage() {
         }
 
         return payments
+    }
+
+    const handlePrint = () => {
+        window.print()
+    }
+
+    const handlePrintPDF = async () => {
+        try {
+            const token = localStorage.getItem("token")
+
+            console.log("Downloading payment schedule PDF for loan:", loanId)
+
+            const response = await fetch(`/api/loans/${loanId}/payment-schedule/export-pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+
+            if (response.ok) {
+                const blob = await response.blob()
+                const downloadUrl = window.URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.href = downloadUrl
+                a.download = `loan-${loanId}-payment-schedule-${new Date().toISOString().split("T")[0]}.pdf`
+                document.body.appendChild(a)
+                a.click()
+                window.URL.revokeObjectURL(downloadUrl)
+                document.body.removeChild(a)
+
+                console.log("PDF downloaded successfully")
+            } else {
+                const errorData = await response.json()
+                console.error("Failed to generate PDF:", errorData.message || "Unknown error")
+                alert("Failed to generate PDF report. Please try again.")
+            }
+        } catch (error) {
+            console.error("Error generating PDF:", error)
+            alert("Failed to generate PDF report. Please try again.")
+        }
     }
 
     useEffect(() => {
@@ -263,170 +301,216 @@ export default function PaymentHistoryPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
-            <div className="flex-1 lg:ml-0">
-                <div className="lg:hidden h-16" />
+        <>
+            <style jsx global>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .print-area, .print-area * {
+                        visibility: visible;
+                    }
+                    .print-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    .print-payment-card {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+                }
+            `}</style>
 
-                <header className="border-b border-border bg-card">
-                    <div className="px-4 sm:px-6 py-4">
-                        <Button
-                            variant="ghost"
-                            onClick={() => router.back()}
-                            className="mb-2 -ml-2"
-                        >
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back
-                        </Button>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-bold text-primary">Loan Payment Schedule</h1>
-                            <Badge variant="outline" className="text-sm">
-                                ID: {loanId}
-                            </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Complete payment schedule for Loan #{paymentSchedule.loan.loan_number}
-                        </p>
-                    </div>
-                </header>
+            <div className="flex min-h-screen bg-background">
+                <div className="flex-1 lg:ml-0">
+                    <div className="lg:hidden h-16" />
 
-                <main className="p-4 sm:p-6">
-                    {error && (
-                        <Card className="p-4 mb-6 border-destructive/30 bg-destructive/5">
-                            <div className="flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-                                <p className="text-sm text-destructive">{error}</p>
-                            </div>
-                        </Card>
-                    )}
-
-                    <Card className="p-6">
-                        {/* Loan Header */}
-                        <div className="mb-6 pb-4 border-b">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    <h2 className="text-xl font-semibold mb-1">
-                                        Loan #{paymentSchedule.loan.loan_number}
-                                    </h2>
-                                    <p className="text-sm text-muted-foreground">
-                                        {paymentSchedule.loan.type} • {paymentSchedule.loan.term_months} months • {paymentSchedule.loan.interest_rate}% interest
-                                    </p>
-                                </div>
-                                <div className="text-left sm:text-right">
-                                    <p className="text-sm text-muted-foreground">Total Loan Amount</p>
-                                    <p className="text-2xl font-bold">
-                                        ₱{parseFloat(paymentSchedule.loan.amount).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                        })}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Payment Schedule Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {paymentSchedule.payments.map((payment) => (
-                                <Card
-                                    key={payment.id}
-                                    className={`p-4 ${payment.status !== 'paid' ? 'cursor-pointer' : 'cursor-default'} transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
-                                    onClick={() => handlePayClick(payment)}
+                    <header className="border-b border-border bg-card no-print">
+                        <div className="px-4 sm:px-6 py-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => router.back()}
+                                    className="-ml-2"
                                 >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground font-medium">
-                                                Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
-                                            </p>
-                                            <p className="text-lg font-bold mt-1">
-                                                ₱{parseFloat(payment.amount).toLocaleString("en-US", {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                            </p>
-                                        </div>
-                                        {getStatusBadge(payment.status)}
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
+                                    Back
+                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handlePrint}
+                                        className="gap-2"
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                        Print
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        onClick={handlePrintPDF}
+                                        className="gap-2 bg-red-600 hover:bg-red-700"
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                        Print PDF
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-bold text-primary">Loan Payment Schedule</h1>
+                                <Badge variant="outline" className="text-sm">
+                                    ID: {loanId}
+                                </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Complete payment schedule for Loan #{paymentSchedule.loan.id}
+                            </p>
+                        </div>
+                    </header>
+
+                    <main className="p-4 sm:p-6 print-area">
+                        {error && (
+                            <Card className="p-4 mb-6 border-destructive/30 bg-destructive/5 no-print">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm text-destructive">{error}</p>
+                                </div>
+                            </Card>
+                        )}
+
+                        <Card className="p-6">
+                            {/* Loan Header */}
+                            <div className="mb-6 pb-4 border-b">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-xl font-semibold mb-1">
+                                            Loan #{paymentSchedule.loan.loan_number}
+                                        </h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            {paymentSchedule.loan.type} • {paymentSchedule.loan.term_months} months • {paymentSchedule.loan.interest_rate}% interest
+                                        </p>
                                     </div>
+                                    <div className="text-left sm:text-right">
+                                        <p className="text-sm text-muted-foreground">Total Loan Amount</p>
+                                        <p className="text-2xl font-bold">
+                                            ₱{parseFloat(paymentSchedule.loan.amount).toLocaleString("en-US", {
+                                                minimumFractionDigits: 2,
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
 
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Calendar className="h-3.5 w-3.5" />
-                                            <span>
-                                                Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
-                                                    month: "short",
-                                                    day: "numeric",
-                                                    year: "numeric",
-                                                })}
-                                            </span>
+                            {/* Payment Schedule Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {paymentSchedule.payments.map((payment) => (
+                                    <Card
+                                        key={payment.id}
+                                        className={`p-4 print-payment-card ${payment.status !== 'paid' ? 'cursor-pointer' : 'cursor-default'} transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
+                                        onClick={() => handlePayClick(payment)}
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground font-medium">
+                                                    Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
+                                                </p>
+                                                <p className="text-lg font-bold mt-1">
+                                                    ₱{parseFloat(payment.amount).toLocaleString("en-US", {
+                                                        minimumFractionDigits: 2,
+                                                    })}
+                                                </p>
+                                            </div>
+                                            {getStatusBadge(payment.status)}
                                         </div>
 
-                                        {payment.paid_date && (
-                                            <div className="flex items-center gap-2 text-green-600">
-                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Calendar className="h-3.5 w-3.5" />
                                                 <span>
-                                                    Paid: {new Date(payment.paid_date).toLocaleDateString("en-US", {
+                                                    Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
                                                         month: "short",
                                                         day: "numeric",
                                                         year: "numeric",
                                                     })}
                                                 </span>
                                             </div>
-                                        )}
 
-                                        {/* Show Pay Now button for pending, overdue, and missed */}
-                                        {payment.status !== 'paid' && (
-                                            <Button
-                                                size="sm"
-                                                variant={payment.status === 'overdue' || payment.status === 'missed' ? 'destructive' : 'default'}
-                                                className="w-full mt-2"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handlePayClick(payment)
-                                                }}
-                                            >
-                                                <CreditCard className="h-3.5 w-3.5 mr-1" />
-                                                Pay Now
-                                            </Button>
-                                        )}
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
+                                            {payment.paid_date && (
+                                                <div className="flex items-center gap-2 text-green-600">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    <span>
+                                                        Paid: {new Date(payment.paid_date).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "numeric",
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            )}
 
-                        {/* Summary Footer */}
-                        <div className="mt-6 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                            <div>
-                                <p className="text-muted-foreground mb-1">Paid</p>
-                                <p className="font-semibold text-green-600">
-                                    {paymentSchedule.payments.filter(p => p.status === 'paid').length} / {paymentSchedule.loan.term_months}
-                                </p>
+                                            {/* Show Pay Now button for pending, overdue, and missed */}
+                                            {payment.status !== 'paid' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant={payment.status === 'overdue' || payment.status === 'missed' ? 'destructive' : 'default'}
+                                                    className="w-full mt-2 no-print"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handlePayClick(payment)
+                                                    }}
+                                                >
+                                                    <CreditCard className="h-3.5 w-3.5 mr-1" />
+                                                    Pay Now
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </Card>
+                                ))}
                             </div>
-                            <div>
-                                <p className="text-muted-foreground mb-1">Pending</p>
-                                <p className="font-semibold text-blue-600">
-                                    {paymentSchedule.payments.filter(p => p.status === 'pending').length}
-                                </p>
+
+                            {/* Summary Footer */}
+                            <div className="mt-6 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <p className="text-muted-foreground mb-1">Paid</p>
+                                    <p className="font-semibold text-green-600">
+                                        {paymentSchedule.payments.filter(p => p.status === 'paid').length} / {paymentSchedule.loan.term_months}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground mb-1">Pending</p>
+                                    <p className="font-semibold text-blue-600">
+                                        {paymentSchedule.payments.filter(p => p.status === 'pending').length}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground mb-1">Overdue</p>
+                                    <p className="font-semibold text-red-600">
+                                        {paymentSchedule.payments.filter(p => p.status === 'overdue').length}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground mb-1">Missed</p>
+                                    <p className="font-semibold text-gray-600">
+                                        {paymentSchedule.payments.filter(p => p.status === 'missed').length}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-muted-foreground mb-1">Overdue</p>
-                                <p className="font-semibold text-red-600">
-                                    {paymentSchedule.payments.filter(p => p.status === 'overdue').length}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground mb-1">Missed</p>
-                                <p className="font-semibold text-gray-600">
-                                    {paymentSchedule.payments.filter(p => p.status === 'missed').length}
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
-                </main>
+                        </Card>
+                    </main>
+                </div>
+
+                {/* Payment Modal */}
+                <PaymentModal
+                    payment={selectedPayment}
+                    open={paymentModalOpen}
+                    onOpenChange={setPaymentModalOpen}
+                    onSuccess={handlePaymentSuccess}
+                />
             </div>
-
-            {/* Payment Modal */}
-            <PaymentModal
-                payment={selectedPayment}
-                open={paymentModalOpen}
-                onOpenChange={setPaymentModalOpen}
-                onSuccess={handlePaymentSuccess}
-            />
-        </div>
+        </>
     )
 }
