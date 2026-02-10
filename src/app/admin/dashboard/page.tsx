@@ -1,15 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-context"
-import { Card } from "@/components/ui/card" 
+import { Card } from "@/components/ui/card"
 import { Wallet, TrendingUp, CreditCard, HandCoins } from "lucide-react"
-import { Chart as ChartJS, CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, PointElement, LineElement } from "chart.js"
 import { Pie, Line } from "react-chartjs-2"
-
-ChartJS.register(CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, PointElement, LineElement)
 
 interface BorrowerUser {
     id: number
@@ -45,59 +41,60 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
 
+    // Pagination states
+    const [pendingPage, setPendingPage] = useState(1)
+    const [historyPage, setHistoryPage] = useState(1)
+    const rowsPerPage = 5
+
+    // Redirect if not admin
     useEffect(() => {
-        if (!user || user.role !== "admin") {
-            router.push("/login")
-            return
-        }
+        if (!user) return
+        if (user.role !== "admin") router.push("/login")
     }, [user, router])
 
-    const fetchAdminData = async () => {
-        setLoading(true)
-        try {
-            const token = localStorage.getItem("token")
-            if (!token) throw new Error("Unauthorized")
+    // Fetch data once
+    useEffect(() => {
+        const fetchAdminData = async () => {
+            setLoading(true)
+            try {
+                const token = localStorage.getItem("token")
+                if (!token) throw new Error("Unauthorized")
 
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+                const res = await fetch("/api/admin/dashboard", {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+                if (!res.ok) throw new Error("Failed to fetch dashboard data")
+                const data = await res.json()
 
-            const [usersRes, loansRes] = await Promise.all([
-                fetch(`${baseUrl}/api/user`, { headers: { Authorization: `Bearer ${token}` } }),
-                fetch(`${baseUrl}/api/loans?include=borrower`, { headers: { Authorization: `Bearer ${token}` } }),
-            ])
+                const allUsers: BorrowerUser[] = Array.isArray(data.users || data.data || data)
+                    ? data.users || data.data || data
+                    : []
 
-            if (!usersRes.ok) throw new Error("Failed to fetch users")
-            if (!loansRes.ok) throw new Error("Failed to fetch loans")
+                const allLoans: Loan[] = Array.isArray(data.loans || data.data || data)
+                    ? data.loans || data.data || data
+                    : []
 
-            const usersData = await usersRes.json()
-            const loansData = await loansRes.json()
+                // Ensure each loan has borrower info
+                allLoans.forEach(l => {
+                    if (!l.borrower && l.user_id) {
+                        const borrower = allUsers.find(u => u.id === l.user_id)
+                        if (borrower) l.borrower = borrower
+                    }
+                })
 
-            const allUsers: BorrowerUser[] = Array.isArray(usersData?.users || usersData?.data || usersData)
-                ? usersData?.users || usersData?.data || usersData
-                : []
-
-            const allLoans: Loan[] = Array.isArray(loansData?.loans || loansData?.data || loansData)
-                ? loansData?.loans || loansData?.data || loansData
-                : []
-
-            // Ensure each loan has a borrower reference
-            allLoans.forEach(l => {
-                if (!l.borrower && l.user_id) {
-                    const borrower = allUsers.find(u => u.id === l.user_id)
-                    if (borrower) l.borrower = borrower
-                }
-            })
-
-            setUsers(allUsers)
-            setLoans(allLoans)
-
-        } catch (error) {
-            console.error("Admin fetch error:", error)
-            localStorage.removeItem("token")
-            router.push("/login")
-        } finally {
-            setLoading(false)
+                setUsers(allUsers)
+                setLoans(allLoans)
+            } catch (err) {
+                console.error("Admin fetch error:", err)
+                localStorage.removeItem("token")
+                router.push("/login")
+            } finally {
+                setLoading(false)
+            }
         }
-    }
+
+        fetchAdminData()
+    }, [router])
 
     // Only consider loans with borrower info for stats
     const loansWithBorrowers = useMemo(() => loans.filter(l => l.borrower), [loans])
@@ -173,6 +170,23 @@ export default function AdminDashboard() {
 
     // Filter for search
     const filteredLoans = useMemo(() => loansWithBorrowers.filter(l => l.id.toString().includes(search)), [loansWithBorrowers, search])
+    const pendingApprovals = filteredLoans.filter(l => l.status === "pending")
+
+    // Paginated data
+    const pendingPageLoans = useMemo(() => {
+        const start = (pendingPage - 1) * rowsPerPage
+        const end = start + rowsPerPage
+        return pendingApprovals.slice(start, end)
+    }, [pendingApprovals, pendingPage])
+
+    const historyPageLoans = useMemo(() => {
+        const start = (historyPage - 1) * rowsPerPage
+        const end = start + rowsPerPage
+        return loans.slice(start, end)
+    }, [loans, historyPage])
+
+    const totalPendingPages = Math.ceil(pendingApprovals.length / rowsPerPage)
+    const totalHistoryPages = Math.ceil(loans.length / rowsPerPage)
 
     const handleLoanAction = async (loanId: number, action: "approve" | "reject") => {
         const confirmMessage = `Are you sure you want to ${action} loan #${loanId}?`
@@ -202,8 +216,6 @@ export default function AdminDashboard() {
             alert(`Error: Could not ${action} loan.`)
         }
     }
-
-    const pendingApprovals = filteredLoans.filter(l => l.status === "pending")
 
     return (
         <div className="flex min-h-screen bg-background">
@@ -315,12 +327,10 @@ export default function AdminDashboard() {
                         </Card>
                     </div>
 
-                    {/* Tabs */}
                     <div className="flex flex-col gap-3">
                         {/* Pending Approvals */}
                         <div className="p-6 border rounded-md bg-accent-foreground shadow-md">
                             <h2 className="text-lg font-semibold mb-4">Pending Approval</h2>
-
                             <table className="w-full text-left table-auto border-collapse">
                                 <thead>
                                     <tr className="border-b border-gray-200">
@@ -335,62 +345,42 @@ export default function AdminDashboard() {
                                         <th className="px-4 py-2 text-sm text-muted-foreground">Created</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
-                                    {activeLoans.length === 0 ? (
+                                    {pendingPageLoans.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="pt-8 pb-3 text-center">
-                                                <div className="flex flex-col justify-center items-center gap-2">
-                                                    <span>No active loans. </span>
-                                                </div>
-                                            </td>
+                                            <td colSpan={9} className="pt-8 pb-3 text-center">No pending loans.</td>
                                         </tr>
                                     ) : (
-                                        activeLoans.map((l) => (
+                                        pendingPageLoans.map(l => (
                                             <tr key={l.id} className="border-b border-gray-100">
-                                                <td className="px-4 py-2">{l.type}</td>
-
-                                                <td className="px-4 py-2">
-                                                    {Number(l.approved_amount).toLocaleString("en-PH", {
-                                                        style: "currency",
-                                                        currency: "PHP",
-                                                    })}
-                                                </td>
-
-                                                <td className="px-4 py-2">
-                                                    {Number(l.principal_amount).toLocaleString("en-PH", {
-                                                        style: "currency",
-                                                        currency: "PHP",
-                                                    })}
-                                                </td>
-
-                                                <td className="px-4 py-2">
-                                                    {Number(l.outstanding_balance).toLocaleString("en-PH", {
-                                                        style: "currency",
-                                                        currency: "PHP",
-                                                    })}
-                                                </td>
-
-                                                <td className="px-4 py-2">{l.interest_rate}%</td>
-
-                                                <td className="px-4 py-2">{l.term_months} months</td>
-
+                                                <td className="px-4 py-2">{l.type || "--"}</td>
+                                                <td className="px-4 py-2">{l.borrower?.first_name} {l.borrower?.last_name}</td>
+                                                <td className="px-4 py-2">{l.borrower?.email}</td>
+                                                <td className="px-4 py-2">{l.borrower?.phone || "--"}</td>
+                                                <td className="px-4 py-2">{(l.approved_amount || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</td>
+                                                <td className="px-4 py-2">{l.interest_rate || "--"}%</td>
+                                                <td className="px-4 py-2">{l.term_months ? `${l.term_months} months` : "--"}</td>
+                                                <td className="px-4 py-2">{new Date(l.created_at).toLocaleDateString("en-PH")}</td>
                                                 <td className="px-4 py-2 capitalize">{l.status}</td>
-
-                                                <td className="px-4 py-2">
-                                                    {new Date(l.created_at).toLocaleDateString("en-PH")}
-                                                </td>
                                             </tr>
                                         ))
                                     )}
                                 </tbody>
                             </table>
+
+                            {/* Pagination */}
+                            {totalPendingPages > 1 && (
+                                <div className="flex justify-end mt-3 gap-2">
+                                    <button disabled={pendingPage === 1} onClick={() => setPendingPage(p => p - 1)} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+                                    <span className="px-2 py-1">{pendingPage} / {totalPendingPages}</span>
+                                    <button disabled={pendingPage === totalPendingPages} onClick={() => setPendingPage(p => p + 1)} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Payment History */}
                         <div className="p-6 border rounded-md bg-accent-foreground shadow-md">
                             <h2 className="text-lg font-semibold mb-4">Payment History</h2>
-
                             <table className="w-full text-left table-auto border-collapse">
                                 <thead>
                                     <tr className="border-b border-gray-200">
@@ -404,14 +394,12 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {loans.length === 0 ? (
+                                    {historyPageLoans.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="pt-8 pb-3 text-center">
-                                                No payment history yet.
-                                            </td>
+                                            <td colSpan={7} className="pt-8 pb-3 text-center">No payment history yet.</td>
                                         </tr>
                                     ) : (
-                                        loans.map((l) => (
+                                        historyPageLoans.map(l => (
                                             <tr key={l.id} className="border-b border-gray-100">
                                                 <td className="px-4 py-2">{l.borrower?.first_name} {l.borrower?.last_name}</td>
                                                 <td className="px-4 py-2">{l.borrower?.email}</td>
@@ -425,6 +413,15 @@ export default function AdminDashboard() {
                                     )}
                                 </tbody>
                             </table>
+
+                            {/* Pagination */}
+                            {totalHistoryPages > 1 && (
+                                <div className="flex justify-end mt-3 gap-2">
+                                    <button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+                                    <span className="px-2 py-1">{historyPage} / {totalHistoryPages}</span>
+                                    <button disabled={historyPage === totalHistoryPages} onClick={() => setHistoryPage(p => p + 1)} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </main>
