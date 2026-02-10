@@ -5,7 +5,6 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-context"
 import { Card } from "@/components/ui/card"
-import { LenderSidebar } from "@/components/lender/lender-sidebar"
 import { Wallet, HandCoins, CreditCard, TrendingUp } from "lucide-react"
 import { Chart as ChartJS, CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, PointElement, LineElement } from "chart.js"
 import { Pie, Line } from "react-chartjs-2"
@@ -38,20 +37,21 @@ interface Loan {
   user_id?: number
 }
 
-export default function AdminDashboard() {
+export default function LenderDashboard() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { authenticated } = useAuth()
   const [users, setUsers] = useState<BorrowerUser[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
 
   useEffect(() => {
-    if (!user || user.role !== "lender") {
+    if (!authenticated) {
       router.push("/login")
       return
     }
-  }, [user, router])
+    if (authenticated) fetchAdminData()
+  }, [authenticated, router])
 
   const fetchAdminData = async () => {
     setLoading(true)
@@ -76,12 +76,14 @@ export default function AdminDashboard() {
         ? usersData?.users || usersData?.data || usersData
         : []
 
-      const allLoans: Loan[] = Array.isArray(loansData?.loans || loansData?.data || loansData) ? loansData?.loans || loansData?.data || loansData : []
+      const allLoans: Loan[] = Array.isArray(loansData?.loans || loansData?.data || loansData)
+        ? loansData?.loans || loansData?.data || loansData
+        : []
 
       // Ensure each loan has a borrower reference
-      allLoans.forEach((l) => {
+      allLoans.forEach(l => {
         if (!l.borrower && l.user_id) {
-          const borrower = allUsers.find((u) => u.id === l.user_id)
+          const borrower = allUsers.find(u => u.id === l.user_id)
           if (borrower) l.borrower = borrower
         }
       })
@@ -97,31 +99,50 @@ export default function AdminDashboard() {
     }
   }
 
-  const loansWithBorrowers = useMemo(() => loans.filter((l) => l.borrower), [loans])
+  const loansWithBorrowers = useMemo(() => loans.filter(l => l.borrower), [loans])
 
-  // --- Stats ---
-  const activeLoans = useMemo(() => loansWithBorrowers.filter((l) => l.status === "approved" && l.outstanding_balance > 0), [loansWithBorrowers])
+  const activeLoans = useMemo(
+    () => loansWithBorrowers.filter(
+      l => l.status === "approved"
+    ),
+    [loansWithBorrowers]
+  );
 
-  const totalBorrowers = useMemo(() => new Set(loansWithBorrowers.map((l) => l.borrower?.id)).size, [loansWithBorrowers])
+  const totalBorrowers = useMemo(
+    () => new Set(loansWithBorrowers.map(l => l.borrower?.id)).size,
+    [loansWithBorrowers]
+  );
+
+  const paymentHistory = useMemo(
+    () => loansWithBorrowers.filter(l => l.principal_amount && l.outstanding_balance >= 0),
+    [loansWithBorrowers]
+  );
 
   // Total approved volume
   const totalLoanVolume = useMemo(
-    () => loansWithBorrowers.filter((l) => l.status === "approved").reduce((sum, l) => sum + (l.approved_amount || 0), 0),
-    [loansWithBorrowers],
-  )
+    () => loansWithBorrowers
+      .filter(l => l.status === "approved")
+      .reduce((sum, l) => sum + (l.approved_amount || 0), 0),
+    [loansWithBorrowers]
+  );
 
   // Repaid loans & repayment rate
-  const repaidLoans = useMemo(() => loansWithBorrowers.filter((l) => l.status === "approved" && l.outstanding_balance === 0), [loansWithBorrowers])
+  const repaidLoans = useMemo(
+    () => loansWithBorrowers.filter(l => l.status === "approved" && l.outstanding_balance === 0),
+    [loansWithBorrowers]
+  );
 
   const repaymentRate = useMemo(
-    () => (loansWithBorrowers.length > 0 ? ((repaidLoans.length / loansWithBorrowers.length) * 100).toFixed(1) : "0"),
-    [loansWithBorrowers, repaidLoans],
-  )
+    () => loansWithBorrowers.length > 0
+      ? ((repaidLoans.length / loansWithBorrowers.length) * 100).toFixed(1)
+      : "0",
+    [loansWithBorrowers, repaidLoans]
+  );
 
   // --- Loan type counts & total volume per type ---
   const loanTypeCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    loansWithBorrowers.forEach((l) => {
+    loansWithBorrowers.forEach(l => {
       const type = l.type || "Other"
       counts[type] = (counts[type] || 0) + 1
     })
@@ -130,7 +151,7 @@ export default function AdminDashboard() {
 
   const loanTypeVolumes = useMemo(() => {
     const volumes: Record<string, number> = {}
-    loansWithBorrowers.forEach((l) => {
+    loansWithBorrowers.forEach(l => {
       const type = l.type || "Other"
       volumes[type] = (volumes[type] || 0) + (l.approved_amount || 0)
     })
@@ -139,31 +160,77 @@ export default function AdminDashboard() {
 
   const loanTypeData = {
     labels: Object.keys(loanTypeCounts),
-    datasets: [
-      {
-        label: "Number of Loans",
-        data: Object.values(loanTypeCounts),
-        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
-      },
-    ],
+    datasets: [{
+      label: "Number of Loans",
+      data: Object.values(loanTypeCounts),
+      backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
+    }],
   }
+
+  // Compute monthly volume trends
+  const monthlyVolumeData = useMemo(() => {
+    const monthsMap: Record<string, number> = {};
+
+    loansWithBorrowers.forEach(l => {
+      if (!l.created_at || !l.approved_amount) return;
+
+      const date = new Date(l.created_at);
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // e.g., "2026-02"
+
+      monthsMap[month] = (monthsMap[month] || 0) + l.approved_amount;
+    });
+
+    // Sort months ascending
+    const sortedMonths = Object.keys(monthsMap).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return {
+      labels: sortedMonths,
+      datasets: [
+        {
+          label: "Total Types Volume",
+          data: sortedMonths.map(m => monthsMap[m]),
+          backgroundColor: "#60A5FA",
+          borderColor: "#3b82f6",
+          borderWidth: 2,
+          fill: true,
+        },
+      ],
+    };
+  }, [loansWithBorrowers]);
+
 
   const loanVolumeData = {
     labels: Object.keys(loanTypeVolumes),
-    datasets: [
-      {
-        label: "Total Volume (PHP)",
-        data: Object.values(loanTypeVolumes),
-        backgroundColor: ["#34D399", "#60A5FA", "#FBBF24", "#F87171", "#A78BFA"],
-      },
-    ],
+    datasets: [{
+      label: "Total Volume (PHP)",
+      data: Object.values(loanTypeVolumes),
+      backgroundColor: ["#34D399", "#60A5FA", "#FBBF24", "#F87171", "#A78BFA"],
+    }],
   }
+
+  // Add new state for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // --- Compute pagination for payment history ---
+  const paginatedPaymentHistory = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return paymentHistory.slice(start, start + itemsPerPage);
+  }, [paymentHistory, currentPage]);
+
+  const totalPages = Math.ceil(paymentHistory.length / itemsPerPage);
+
+  // --- Handlers ---
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="flex-1">
+      <div className="flex-1 lg:ml-0">
         <div className="lg:hidden h-16" />
-        <header className="hidden lg:block border-b border-border bg-card px-4 sm:px-6 py-4">
+        <header className="border-b border-border bg-card px-4 sm:px-6 py-4">
           <h2 className="text-2xl font-semibold">Lender Dashboard</h2>
         </header>
 
@@ -225,14 +292,14 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Loan Type Count */}
             <Card className="p-6 flex flex-col justify-between" style={{ minHeight: 350 }}>
-              <h2 className="text-lg font-semibold mb-4">Loan Status Distribution</h2>
+              <h2 className="text-lg font-semibold mb-4">Loan Type Distribution</h2>
               <div className="flex-1">
                 <Pie
                   data={loanTypeData}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: "bottom", labels: { padding: 20 } } },
+                    plugins: { legend: { position: 'bottom', labels: { padding: 20 } } },
                   }}
                 />
               </div>
@@ -240,15 +307,18 @@ export default function AdminDashboard() {
 
             {/* Loan Type Volume */}
             <Card className="p-6 flex flex-col justify-between" style={{ minHeight: 350 }}>
-              <h2 className="text-lg font-semibold mb-4">Monthly Loan Trends</h2>
+              <h2 className="text-lg font-semibold mb-4">Monthly Volume Trends</h2>
               <div className="flex-1">
                 <Line
-                  data={loanVolumeData}
+                  data={monthlyVolumeData}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: "top" } },
-                    scales: { x: { grid: { display: false } }, y: { grid: { drawBorder: false } } },
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                      x: { grid: { display: false }, title: { display: true, text: 'Month' } },
+                      y: { grid: { drawBorder: false }, title: { display: true, text: 'Number of Types' } }
+                    },
                   }}
                 />
               </div>
@@ -273,10 +343,9 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeLoans.map((l) => (
+                  {activeLoans.map(l => (
                     <tr key={l.id} className="border-b border-gray-100">
                       <td className="px-4 py-2">{l.type}</td>
-                      <td className="px-4 py-2">{l.approved_amount.toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</td>
                       <td className="px-4 py-2">{(l.principal_amount || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</td>
                       <td className="px-4 py-2">{l.outstanding_balance.toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</td>
                       <td className="px-4 py-2">{l.interest_rate}%</td>
@@ -298,7 +367,7 @@ export default function AdminDashboard() {
                   <tr className="border-b border-gray-200">
                     <th className="px-4 py-2 text-sm text-muted-foreground">Name</th>
                     <th className="px-4 py-2 text-sm text-muted-foreground">Email</th>
-                    <th className="px-4 py-2 text-sm text-muted-foreground">Phone</th>
+                    <th className="px-4 py-2 text-sm text-muted-foreground">Type</th>
                     <th className="px-4 py-2 text-sm text-muted-foreground">Amount Paid</th>
                     <th className="px-4 py-2 text-sm text-muted-foreground">Outstanding Balance</th>
                     <th className="px-4 py-2 text-sm text-muted-foreground">Status</th>
@@ -306,32 +375,61 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loans.length === 0 ? (
+                  {paginatedPaymentHistory.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="pt-8 pb-3 text-center">
                         No payment history yet.
                       </td>
                     </tr>
                   ) : (
-                    loans.map((l) => (
+                    paginatedPaymentHistory.map((l) => (
                       <tr key={l.id} className="border-b border-gray-100">
-                        <td className="px-4 py-2">
-                          {l.borrower?.first_name} {l.borrower?.last_name}
-                        </td>
+                        <td className="px-4 py-2">{l.borrower?.first_name} {l.borrower?.last_name}</td>
                         <td className="px-4 py-2">{l.borrower?.email}</td>
-                        <td className="px-4 py-2">{l.borrower?.phone || "--"}</td>
+                        <td className="px-4 py-2">{l.type || "--"}</td>
                         <td className="px-4 py-2">
                           {((l.principal_amount || 0) - (l.outstanding_balance || 0)).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}
                         </td>
-                        <td className="px-4 py-2">{(l.outstanding_balance || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</td>
+                        <td className="px-4 py-2">
+                          {(l.outstanding_balance || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}
+                        </td>
                         <td className="px-4 py-2 capitalize">{l.status}</td>
                         <td className="px-4 py-2">{l.updated_at ? new Date(l.updated_at).toLocaleDateString("en-PH") : "--"}</td>
                       </tr>
                     ))
                   )}
                 </tbody>
+                <div className="mt-4 flex justify-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => goToPage(i + 1)}
+                      className={`px-3 py-1 border rounded ${currentPage === i + 1 ? "bg-blue-500 text-white" : ""}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+
               </table>
             </div>
+
           </div>
         </main>
       </div>

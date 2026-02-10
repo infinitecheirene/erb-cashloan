@@ -6,7 +6,6 @@ import { useAuth } from "@/components/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { BorrowerSidebar } from "@/components/borrower/borrower-sidebar"
 import Link from "next/link"
 import {
     Wallet,
@@ -113,18 +112,19 @@ export default function BorrowerDashboard() {
     }, [authenticated, authLoading, router])
 
     const fetchUserAndLoans = async () => {
-        setLoading(true)
+        setLoading(true);
+        setError("");
         try {
-            const token = localStorage.getItem("token")
-            if (!token) throw new Error("Unauthorized")
+            const token = localStorage.getItem("token");
+            if (!token) throw new Error("Unauthorized");
 
             // Fetch authenticated user
             const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
-            })
-            if (!userRes.ok) throw new Error("Failed to fetch user")
-            const userData = await userRes.json()
-            const u = userData.user || userData
+            });
+            if (!userRes.ok) throw new Error("Failed to fetch user");
+            const userData = await userRes.json();
+            const u = userData.user || userData;
             setUser({
                 id: u.id,
                 firstName: u.first_name,
@@ -134,10 +134,11 @@ export default function BorrowerDashboard() {
                 city: u.city,
                 postalCode: u.postal_code,
                 created_at: u.created_at,
-            })
+            });
 
+            // Fetch loans for the user
             const loansRes = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/borrowers/${u.id}/loans`,
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/borrowers/${u.id}/loans?include=borrower,lender,payments`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -146,58 +147,53 @@ export default function BorrowerDashboard() {
                 }
             );
 
-            if (!loansRes.ok) throw new Error("Failed to fetch loans")
-            const loansData = await loansRes.json()
-            const loanList: Loan[] = loansData.loans || []
+            if (!loansRes.ok) throw new Error("Failed to fetch loans");
+            const loansData = await loansRes.json();
+            const loanList: Loan[] = loansData.loans || [];
 
-            // Compute stats
-            let totalBorrowed = 0
-            let monthlyPayment = 0
-            let outstandingBalance = 0
-            let nextPayment: string | null = null
+            // Compute loan stats
+            let totalBorrowed = 0;
+            let monthlyPayment = 0;
+            let outstandingBalance = 0;
+            let nextPayment: string | null = null;
 
-            // Filter active (approved + still paying)
+            // Filter active loans
             const active = loanList.filter(
                 (l) =>
-                    l.status.toLowerCase() === "approved" &&
-                    Number(l.outstanding_balance) > 0
-            )
+                    l.status.toLowerCase() === "active"
+            );
 
             loanList.forEach((l) => {
-                totalBorrowed += Number(l.principal_amount)
-                outstandingBalance += Number(l.outstanding_balance)
-            })
+                totalBorrowed += Number(l.principal_amount);
+                outstandingBalance += Number(l.outstanding_balance);
+            });
 
-            // Calculate monthly payment + next payment from active loans only
             active.forEach((l) => {
                 monthlyPayment +=
                     Number(l.approved_amount) / Number(l.term_months) +
-                    (Number(l.approved_amount) *
-                        Number(l.interest_rate)) /
-                    100 /
-                    Number(l.term_months)
+                    (Number(l.approved_amount) * Number(l.interest_rate)) / 100 / Number(l.term_months);
 
                 if (!nextPayment && l.next_payment_date) {
-                    nextPayment = l.next_payment_date
+                    nextPayment = l.next_payment_date;
                 }
-            })
+            });
 
             setLoanStats({
                 totalBorrowed,
                 monthlyPayment,
                 outstandingBalance,
                 nextPayment,
-            })
+            });
 
-            setActiveLoans(active)
-            setLoans(loanList)
+            setLoans(loanList);
+            setActiveLoans(active); // <- correctly set active loans here
         } catch (err: any) {
-            console.error("Dashboard fetch error:", err)
-            setError(err.message || "Failed to load dashboard")
+            console.error("Dashboard fetch error:", err);
+            setError(err.message || "Failed to load dashboard");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const handleLogout = async () => {
         const token = localStorage.getItem("token")
@@ -335,7 +331,7 @@ export default function BorrowerDashboard() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 space-y-6 gap-2">
                         <Card className="p-6 h-auto">
-                            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+                            <h3 className="text-lg font-semibold text-card-foreground">
                                 Upcoming Payment
                             </h3>
 
@@ -366,7 +362,7 @@ export default function BorrowerDashboard() {
                                         Number(nextLoan.term_months)
 
                                     return (
-                                        <Card className="bg-gray-50 p-4 space-y-3">
+                                        <div className="bg-gray-50 p-4 space-y-3">
                                             <div className="flex justify-between">
                                                 <span className="text-sm text-muted-foreground">
                                                     Loan Type
@@ -406,7 +402,7 @@ export default function BorrowerDashboard() {
                                                     Make Payment
                                                 </Button>
                                             </div>
-                                        </Card>
+                                        </div>
                                     )
                                 })()
                             )}
@@ -473,14 +469,13 @@ export default function BorrowerDashboard() {
                                         <th className="px-4 py-2 text-sm text-muted-foreground">Outstanding</th>
                                         <th className="px-4 py-2 text-sm text-muted-foreground">Interest Rate</th>
                                         <th className="px-4 py-2 text-sm text-muted-foreground">Term</th>
-                                        <th className="px-4 py-2 text-sm text-muted-foreground">Status</th>
                                         <th className="px-4 py-2 text-sm text-muted-foreground">Created</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {activeLoans.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="pt-8 pb-3 text-center">
+                                            <td colSpan={7} className="pt-8 pb-3 text-center">
                                                 <div className="flex flex-col justify-center items-center gap-2">
                                                     <span>No active loans. </span>
                                                     <Link
@@ -521,8 +516,6 @@ export default function BorrowerDashboard() {
                                                 <td className="px-4 py-2">{l.interest_rate}%</td>
 
                                                 <td className="px-4 py-2">{l.term_months} months</td>
-
-                                                <td className="px-4 py-2 capitalize">{l.status}</td>
 
                                                 <td className="px-4 py-2">
                                                     {new Date(l.created_at).toLocaleDateString("en-PH")}
