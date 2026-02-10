@@ -13,20 +13,30 @@ interface ProfileData {
   email: string
   phone: string
   profileImageUrl: string
+  address?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
 }
 
-export default function LenderSettings() {
+export default function AdminSettingsPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [successMessage, setSuccessMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    profileImageUrl: ""
+    firstName: " ",
+    lastName: " ",
+    email: " ",
+    phone: " ",
+    profileImageUrl: " ",
+    address: " ",
+    city: " ",
+    state: " ",
+    postalCode: " ",
+    country: " ",
   })
 
   // Fetch user profile on component mount
@@ -54,7 +64,12 @@ export default function LenderSettings() {
         lastName: result.data.last_name || "",
         email: result.data.email || "",
         phone: result.data.phone || "",
-        profileImageUrl: result.data.profile_url || ""
+        profileImageUrl: result.data.profile_url || "",
+        address: result.data.address || "",
+        city: result.data.city || "",
+        state: result.data.state || "",
+        postalCode: result.data.postal_code || "",
+        country: result.data.country || "",
       }
 
       setProfileData(userData)
@@ -140,7 +155,7 @@ export default function LenderSettings() {
       <main className="max-w-8xl mx-8 md:mx-16 lg:mx-20 xl:mx-32">
         <div className="space-y-6">
           {/* Profile Picture Section */}
-          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -163,7 +178,7 @@ export default function LenderSettings() {
           </Card>
 
           {/* Personal Information Section */}
-          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -186,7 +201,7 @@ export default function LenderSettings() {
           </Card>
 
           {/* Password Section */}
-          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-violet-50 rounded-lg">

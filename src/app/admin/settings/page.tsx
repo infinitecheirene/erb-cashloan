@@ -13,6 +13,11 @@ interface ProfileData {
   email: string
   phone: string
   profileImageUrl: string
+  address?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
 }
 
 export default function AdminSettingsPage() {
@@ -22,11 +27,16 @@ export default function AdminSettingsPage() {
   const [errorMessage, setErrorMessage] = useState("")
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    profileImageUrl: "",
+    firstName: " ",
+    lastName: " ",
+    email: " ",
+    phone: " ",
+    profileImageUrl: " ",
+    address: " ",
+    city: " ",
+    state: " ",
+    postalCode: " ",
+    country: " ",
   })
 
   // Fetch user profile on component mount
@@ -39,13 +49,13 @@ export default function AdminSettingsPage() {
       setIsLoading(true)
       setErrorMessage("")
 
-      const response = await fetch("/api/settings", {
-        method: "GET",
-        credentials: "include",
+      const response = await fetch('/api/settings', {
+        method: 'GET',
+        credentials: 'include',
       })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch profile")
+        throw new Error('Failed to fetch profile')
       }
 
       const result = await response.json()
@@ -55,6 +65,11 @@ export default function AdminSettingsPage() {
         email: result.data.email || "",
         phone: result.data.phone || "",
         profileImageUrl: result.data.profile_url || "",
+        address: result.data.address || "",
+        city: result.data.city || "",
+        state: result.data.state || "",
+        postalCode: result.data.postal_code || "",
+        country: result.data.country || "",
       }
 
       setProfileData(userData)
@@ -63,8 +78,8 @@ export default function AdminSettingsPage() {
         setProfileImage(userData.profileImageUrl)
       }
     } catch (error: any) {
-      console.error("Error fetching profile:", error)
-      setErrorMessage(error.message || "Failed to load profile data.")
+      console.error('Error fetching profile:', error)
+      setErrorMessage(error.message || 'Failed to load profile data.')
     } finally {
       setIsLoading(false)
     }
@@ -72,7 +87,7 @@ export default function AdminSettingsPage() {
 
   const handleImageUpdate = (imageUrl: string) => {
     setProfileImage(imageUrl || null)
-    setProfileData((prev) => ({ ...prev, profileImageUrl: imageUrl }))
+    setProfileData(prev => ({ ...prev, profileImageUrl: imageUrl }))
   }
 
   const handleProfileUpdate = (data: ProfileData) => {
@@ -140,7 +155,7 @@ export default function AdminSettingsPage() {
       <main className="max-w-8xl mx-8 md:mx-16 lg:mx-20 xl:mx-32">
         <div className="space-y-6">
           {/* Profile Picture Section */}
-          <Card className="mt-10 gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -153,12 +168,17 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="p-6">
-              <ProfilePicture profileImage={profileImage} onImageUpdate={handleImageUpdate} onError={handleError} onSuccess={handleSuccess} />
+              <ProfilePicture
+                profileImage={profileImage}
+                onImageUpdate={handleImageUpdate}
+                onError={handleError}
+                onSuccess={handleSuccess}
+              />
             </div>
           </Card>
 
           {/* Personal Information Section */}
-          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -171,12 +191,17 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="p-6">
-              <PersonalInformation profileData={profileData} onUpdate={handleProfileUpdate} onError={handleError} onSuccess={handleSuccess} />
+              <PersonalInformation
+                profileData={profileData}
+                onUpdate={handleProfileUpdate}
+                onError={handleError}
+                onSuccess={handleSuccess}
+              />
             </div>
           </Card>
 
           {/* Password Section */}
-          <Card className="gap-0 p-0 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="border-b border-slate-200 px-6 py-4 bg-primary/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-violet-50 rounded-lg">

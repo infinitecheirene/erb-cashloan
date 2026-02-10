@@ -39,7 +39,6 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
   const handlePasswordChange = async () => {
     setPasswordSuccess(false)
     setPasswordErrors([])
-
     const errors: string[] = []
 
     if (!passwordData.currentPassword) {
@@ -49,14 +48,15 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
     if (!passwordData.newPassword) {
       errors.push("New password is required")
     } else {
-      errors.push(...validatePassword(passwordData.newPassword))
+      const validationErrors = validatePassword(passwordData.newPassword)
+      errors.push(...validationErrors)
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       errors.push("Passwords do not match")
     }
 
-    if (passwordData.currentPassword && passwordData.newPassword && passwordData.currentPassword === passwordData.newPassword) {
+    if (passwordData.currentPassword === passwordData.newPassword) {
       errors.push("New password must be different from current password")
     }
 
@@ -68,11 +68,11 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
     try {
       setIsSaving(true)
 
-      const response = await fetch("/api/settings/change-password", {
-        method: "PUT",
-        credentials: "include",
+      const response = await fetch('/api/settings/change-password', {
+        method: 'PUT',
+        credentials: 'include',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           current_password: passwordData.currentPassword,
@@ -81,21 +81,10 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
         }),
       })
 
-      let result: any
-      try {
-        result = await response.json()
-      } catch {
-        throw new Error("Unexpected server response")
-      }
+      const result = await response.json()
 
       if (!response.ok) {
-        if (response.status === 422 && result.errors) {
-          const messages = Object.values(result.errors).flat() as string[]
-          setPasswordErrors(messages)
-          return
-        }
-
-        throw new Error(result.message || "Failed to change password")
+        throw new Error(result.message || 'Failed to change password')
       }
 
       setPasswordSuccess(true)
@@ -104,11 +93,10 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
         newPassword: "",
         confirmPassword: "",
       })
-
       onSuccess("Password changed successfully!")
       setTimeout(() => setPasswordSuccess(false), 5000)
     } catch (error: any) {
-      console.error(error)
+      console.error('Error changing password:', error)
       setPasswordErrors([error.message || "Failed to change password"])
     } finally {
       setIsSaving(false)
@@ -181,15 +169,23 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
               type={showPasswords.current ? "text" : "password"}
               className="border-slate-300 focus:border-primary focus:ring-primary bg-white h-11 pr-10"
               value={passwordData.currentPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, currentPassword: e.target.value })
+              }
               placeholder="Enter your current password"
             />
             <button
               type="button"
-              onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+              onClick={() =>
+                setShowPasswords({ ...showPasswords, current: !showPasswords.current })
+              }
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPasswords.current ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
@@ -205,15 +201,23 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
               type={showPasswords.new ? "text" : "password"}
               className="border-slate-300 focus:border-primary focus:ring-primary bg-white h-11 pr-10"
               value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, newPassword: e.target.value })
+              }
               placeholder="Enter your new password"
             />
             <button
               type="button"
-              onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+              onClick={() =>
+                setShowPasswords({ ...showPasswords, new: !showPasswords.new })
+              }
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPasswords.new ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
             </button>
           </div>
 
@@ -227,7 +231,13 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
                     <div
                       key={level}
                       className={`h-1.5 w-6 rounded-full transition-colors ${
-                        level <= getPasswordStrength() ? (level <= 2 ? "bg-red-500" : level <= 4 ? "bg-amber-500" : "bg-emerald-500") : "bg-slate-200"
+                        level <= getPasswordStrength()
+                          ? level <= 2
+                            ? "bg-red-500"
+                            : level <= 4
+                            ? "bg-amber-500"
+                            : "bg-emerald-500"
+                          : "bg-slate-200"
                       }`}
                     />
                   ))}
@@ -242,10 +252,16 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
                   { text: "Special character", check: /[!@#$%^&*(),.?":{}|<>]/.test(passwordData.newPassword) },
                 ].map((req, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${req.check ? "bg-emerald-500" : "bg-slate-300"}`}>
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                        req.check ? "bg-emerald-500" : "bg-slate-300"
+                      }`}
+                    >
                       {req.check && <CheckCircle className="w-3 h-3 text-white" />}
                     </div>
-                    <span className={req.check ? "text-emerald-700" : "text-slate-600"}>{req.text}</span>
+                    <span className={req.check ? "text-emerald-700" : "text-slate-600"}>
+                      {req.text}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -264,21 +280,31 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
               type={showPasswords.confirm ? "text" : "password"}
               className="border-slate-300 focus:border-primary focus:ring-primary bg-white h-11 pr-10"
               value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+              }
               placeholder="Confirm your new password"
             />
             <button
               type="button"
-              onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+              onClick={() =>
+                setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })
+              }
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPasswords.confirm ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
             </button>
           </div>
           {passwordData.confirmPassword && (
             <p
               className={`text-xs mt-2 flex items-center gap-1.5 ${
-                passwordData.newPassword === passwordData.confirmPassword ? "text-emerald-600" : "text-red-600"
+                passwordData.newPassword === passwordData.confirmPassword
+                  ? "text-emerald-600"
+                  : "text-red-600"
               }`}
             >
               {passwordData.newPassword === passwordData.confirmPassword ? (
@@ -309,7 +335,12 @@ export default function PasswordChange({ onSuccess }: PasswordChangeProps) {
           <Button
             onClick={handlePasswordChange}
             className="flex-1 bg-primary hover:bg-primary/90 text-white h-11"
-            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword || isSaving}
+            disabled={
+              !passwordData.currentPassword ||
+              !passwordData.newPassword ||
+              !passwordData.confirmPassword ||
+              isSaving
+            }
           >
             {isSaving ? (
               <>

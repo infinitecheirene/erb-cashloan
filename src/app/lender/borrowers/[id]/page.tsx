@@ -155,7 +155,7 @@ export default function BorrowerPage() {
         setBorrower(data.borrower)
       } catch {
         toast.error("Failed to load borrower details")
-        // router.push("/lender/borrowers")
+        router.push("/lender/borrowers")
       } finally {
         setLoading(false)
       }
@@ -363,13 +363,13 @@ export default function BorrowerPage() {
           {/* Contact Information Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 my-4">
+              <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5 text-blue-600" />
                 Contact Information
               </CardTitle>
               <CardDescription>Borrower contact details and account information</CardDescription>
             </CardHeader>
-            <CardContent className="my-4">
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <InfoCard
                   icon={<Mail className="h-5 w-5 text-blue-600" />}
@@ -418,7 +418,7 @@ export default function BorrowerPage() {
             <TabsContent value="loans" className="space-y-4">
               {borrower.loans?.length ? (
                 borrower.loans.map((loan) => (
-                  <Card key={loan.id} className="overflow-hidden border-l-4 border-l-blue-600 gap-4 py-4">
+                  <Card key={loan.id} className="overflow-hidden border-l-4 border-l-blue-600">
                     <CardHeader className="bg-slate-50/50">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
@@ -585,7 +585,7 @@ export default function BorrowerPage() {
               {borrower.loans?.flatMap((loan) => loan.payments || []).length ? (
                 borrower.loans.flatMap((loan) =>
                   loan.payments?.map((payment) => (
-                    <Card key={payment.id} className="overflow-hidden gap-6 py-4">
+                    <Card key={payment.id} className="overflow-hidden">
                       <CardHeader className="bg-slate-50/50">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div>
@@ -679,7 +679,7 @@ export default function BorrowerPage() {
             <TabsContent value="timeline" className="space-y-6">
               {borrower.loans?.length ? (
                 borrower.loans.map((loan) => (
-                  <Card key={loan.id} className="overflow-hidden gap-6 py-4">
+                  <Card key={loan.id} className="overflow-hidden">
                     <CardHeader className="bg-slate-50/50">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Clock className="h-5 w-5 text-blue-600" />

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     // Try to get token from BOTH cookies AND Authorization header
     const cookieStore = await cookies();
     let token = cookieStore.get('token')?.value;
-
+    
     // If no token in cookies, try Authorization header
     if (!token) {
       const authHeader = request.headers.get('Authorization');
@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Only allow admin users
     const laravelUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     const url = new URL(`${laravelUrl}/api/lenders`);
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     console.log("[Next.js] Fetching lenders from Laravel:", url.toString());
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         "Accept": "application/json",

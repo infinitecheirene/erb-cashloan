@@ -4,12 +4,8 @@ import { useState, useEffect } from "react"
 import { ReusableDataTable, ColumnDef, FilterConfig } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, Eye, Calendar, User as UserIcon, RefreshCw, Users, CheckCircle2, XCircle, Edit2 } from "lucide-react"
+import { Mail, Phone, Eye, Calendar, User as UserIcon, RefreshCw, Users } from "lucide-react"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { toast } from "sonner"
 
 interface User {
   id: number
@@ -18,62 +14,16 @@ interface User {
   phone: string | null
   profile_url: string | null
   status: string
-  role: string
-  is_active: boolean
   created_at: string
 }
 
 const UserManagementPage = () => {
   const [refresh, setRefresh] = useState(false)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [role, setRole] = useState("")
-  const [isActive, setIsActive] = useState(selectedUser?.is_active || false)
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (selectedUser) {
-      setRole(selectedUser?.role)
-      setIsActive(selectedUser?.is_active)
-    }
-  }, [selectedUser])
+  // ✅ ADD THIS DEBUG EFFECT
 
   const handleRefresh = () => {
     setRefresh(!refresh)
-  }
-
-  const handleSubmit = async () => {
-    if (!selectedUser) return
-    setLoading(true)
-
-    try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          role: role,
-          is_active: isActive ? "1" : "0",
-        }),
-      })
-
-      if (!response.ok) throw new Error("Failed to update user")
-
-      // Refresh the table and close modal
-      setRefresh((prev) => !prev)
-      setShowUpdateModal(false)
-      toast.success("User updated successfully", {
-        description: `${selectedUser.name} has been updated.`,
-      })
-    } catch (error) {
-      console.error("Error updating user:", error)
-      toast.error("Failed to update user", {
-        description: "Please try again.",
-      })
-      alert("Failed to update user. Please try again.")
-    } finally {
-      setLoading(false)
-    }
   }
 
   // Helper function for status badge
@@ -97,23 +47,33 @@ const UserManagementPage = () => {
       label: "Profile",
       width: "w-[100px]",
       align: "center",
-      render: (value, user) =>
+      render: (value, user) => (
         value ? (
           <div className="relative w-12 h-12 rounded-full overflow-hidden mx-auto border-2 border-blue-100">
-            <Image src={`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "")}${value}`} alt={user.name} fill className="object-cover" />
+            <Image
+              src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${value}`}
+              alt={user.name}
+              fill
+              className="object-cover"
+            />
           </div>
         ) : (
           <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-600 rounded-full flex items-center justify-center mx-auto text-white font-semibold shadow-sm">
             {user.name.charAt(0).toUpperCase()}
           </div>
-        ),
+        )
+      ),
     },
     {
       key: "name",
       label: "Name",
       sortable: true,
       width: "w-[200px]",
-      render: (value) => <div className="font-medium text-gray-900 break-words whitespace-normal">{value}</div>,
+      render: (value) => (
+        <div className="font-medium text-gray-900 break-words whitespace-normal">
+          {value}
+        </div>
+      ),
     },
     {
       key: "email",
@@ -128,22 +88,27 @@ const UserManagementPage = () => {
       ),
     },
     {
-      key: "is_active",
-      label: "Active",
-      width: "w-[120px]",
+      key: "phone",
+      label: "Phone",
+      width: "w-[180px]",
       align: "center",
-      render: (value: boolean) => (
-        <div className="flex justify-center">
-          {value ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <XCircle className="h-5 w-5 text-gray-400" />}
-        </div>
+      render: (value) => (
+        value ? (
+          <div className="flex items-center justify-center gap-2 text-gray-600">
+            <Phone className="h-4 w-4 text-blue-800/60 flex-shrink-0" />
+            <span className="text-sm break-words whitespace-normal">{value}</span>
+          </div>
+        ) : (
+          <span className="text-gray-400 text-sm">N/A</span>
+        )
       ),
     },
     {
-      key: "role",
-      label: "Roles",
+      key: "status",
+      label: "Status",
       width: "w-[120px]",
       align: "center",
-      render: (value) => <div className="font-medium text-gray-900 break-words whitespace-normal capitalize">{value}</div>,
+      render: (value) => getStatusBadge(value),
     },
     {
       key: "actions",
@@ -151,30 +116,13 @@ const UserManagementPage = () => {
       width: "w-[100px]",
       align: "center",
       render: (value, user) => (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="group text-blue-800 hover:bg-blue-300 hover:text-white border-none transition-all"
-            onClick={() => {
-              setShowDetailsModal(true)
-              setSelectedUser(user)
-            }}
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="group text-blue-800 hover:bg-blue-300 hover:text-white border-none transition-all"
-            onClick={() => {
-              setSelectedUser(user)
-              setShowUpdateModal(true)
-            }}
-          >
-            <Edit2 className="w-4 h-4" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="group text-blue-800 hover:bg-blue-300 hover:text-white border-none transition-all"
+        >
+          <Eye className="w-4 h-4" />
+        </Button>
       ),
     },
   ]
@@ -194,6 +142,123 @@ const UserManagementPage = () => {
     },
   ]
 
+  // Details dialog render
+  const renderDetailsDialog = (user: User) => (
+    <>
+      {/* Header with gradient background */}
+      <div className="bg-gradient-to-br from-blue-800 to-blue-600 px-8 py-6">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Member Profile
+        </h2>
+        <p className="text-blue-100 text-sm">View detailed member information</p>
+      </div>
+
+      {/* Content */}
+      <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+        {/* Profile Section */}
+        <div className="bg-white px-8 py-6 border-b border-gray-200">
+          <div className="flex items-start gap-6">
+            {/* Profile Image */}
+            <div className="flex-shrink-0">
+              {user.profile_url ? (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg">
+                  <Image
+                    src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${user.profile_url}`}
+                    alt={user.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-800 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Name and Status */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {user.name}
+              </h3>
+              <div className="flex items-center gap-3">
+                {getStatusBadge(user.status)}
+                <span className="text-sm text-gray-500">
+                  Member ID: #{user.id}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Information Grid */}
+        <div className="bg-gray-50 px-8 py-6">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <UserIcon className="h-5 w-5 text-blue-800" />
+            Contact Information
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Email */}
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-blue-800" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email Address
+                  </label>
+                  <p className="text-sm font-medium text-gray-900 mt-1 break-all">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Phone className="h-5 w-5 text-blue-800" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone Number
+                  </label>
+                  <p className="text-sm font-medium text-gray-900 mt-1">
+                    {user.phone || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Member Since */}
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm md:col-span-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-blue-800" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Member Since
+                  </label>
+                  <p className="text-sm font-medium text-gray-900 mt-1">
+                    {new Date(user.created_at).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <main className="w-full flex-1 ml-0 min-h-screen pt-16 lg:pt-0">
@@ -208,7 +273,9 @@ const UserManagementPage = () => {
                   </div>
                   <h1 className="text-3xl font-bold text-slate-900">User Management</h1>
                 </div>
-                <p className="text-slate-600">Centralized administration of accounts and roles</p>
+                <p className="text-slate-600">
+                  Centralized administration of accounts and roles
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <Button
@@ -231,156 +298,18 @@ const UserManagementPage = () => {
             columns={columns}
             filters={filters}
             searchPlaceholder="Search by name, email, or phone..."
-            searchFields={["name", "email", "phone"]}
+            searchFields={['name', 'email', 'phone']}
+            detailsDialog={{
+              enabled: true,
+              title: "Member Profile",
+              render: renderDetailsDialog,
+            }}
             defaultPerPage={5}
-            defaultSort={{ field: "created_at", order: "desc" }}
+            defaultSort={{ field: 'created_at', order: 'desc' }}
             emptyMessage="No users found"
             loadingMessage="Loading users..."
           />
         </div>
-
-        {/* view user details */}
-        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent className="gap-0 p-0">
-            <>
-              {/* Header with gradient background */}
-              <div className="bg-gradient-to-br from-blue-800 to-blue-600 px-8 py-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Member Profile</h2>
-                <p className="text-blue-100 text-sm">View detailed member information</p>
-              </div>
-
-              {/* Content */}
-              <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
-                {/* Profile Section */}
-                <div className="bg-white px-8 py-6 border-b border-gray-200">
-                  <div className="flex items-start gap-6">
-                    {/* Profile Image */}
-                    <div className="flex-shrink-0">
-                      {selectedUser?.profile_url ? (
-                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg">
-                          <Image
-                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "")}${selectedUser.profile_url}`}
-                            alt={selectedUser.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-24 h-24 bg-gradient-to-br from-blue-800 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                          {selectedUser?.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Name and Status */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedUser?.name}</h3>
-                      <div className="flex items-center gap-3">
-                        {getStatusBadge(selectedUser?.status ?? "")}
-                        <span className="text-sm text-gray-500">Member ID: #{selectedUser?.id}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Information Grid */}
-                <div className="bg-gray-50 px-8 py-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <UserIcon className="h-5 w-5 text-blue-800" />
-                    Contact Information
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Email */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Mail className="h-5 w-5 text-blue-800" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</label>
-                          <p className="text-sm font-medium text-gray-900 mt-1 break-all">{selectedUser?.email}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Phone className="h-5 w-5 text-blue-800" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</label>
-                          <p className="text-sm font-medium text-gray-900 mt-1">{selectedUser?.phone || "Not provided"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Member Since */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm md:col-span-2">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Calendar className="h-5 w-5 text-blue-800" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Member Since</label>
-                          <p className="text-sm font-medium text-gray-900 mt-1">
-                            {selectedUser?.created_at &&
-                              new Date(selectedUser.created_at).toLocaleDateString("en-US", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          </DialogContent>
-        </Dialog>
-
-        {/* update user */}
-        <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-          <DialogContent className="max-w-md p-6">
-            <DialogHeader>
-              <DialogTitle>Update User: {selectedUser?.name}</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4 mt-4">
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">Role</label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="lender">Lender</SelectItem>
-                    <SelectItem value="borrower">Borrower</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-4">
-                <span className="font-medium text-gray-700">Active</span>
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button variant="outline" onClick={() => setShowUpdateModal(false)} disabled={loading}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmit} disabled={loading}>
-                  {loading ? "Updating..." : "Update User"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </main>
     </div>
   )

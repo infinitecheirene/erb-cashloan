@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 // Properly typed context for Next.js 15
 type RouteContext = {
@@ -12,17 +13,26 @@ export async function GET(
     const params = await context.params
     const id = params.id
 
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    // Try to get token from BOTH cookies AND Authorization header
+    const cookieStore = await cookies();
+    let token = cookieStore.get('token')?.value;
+
+    // If no token in cookies, try Authorization header
+    if (!token) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.replace('Bearer ', '');
+      }
+    }
 
     if (!token) {
       return NextResponse.json(
-        { message: 'Unauthorized' },
+        { success: false, message: 'Not authenticated. Please log in again.' },
         { status: 401 }
       );
     }
 
-    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const url = `${laravelUrl}/api/loans/${id}/payments`;
 
     const response = await fetch(url, {

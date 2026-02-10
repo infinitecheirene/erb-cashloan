@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     const laravelUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-    const url = `${laravelUrl}/api/borrower/payments` // or wherever your create payment endpoint is
+    const url = `${laravelUrl}/api/payments` // or wherever your create payment endpoint is
 
     console.log(`[Payments API POST] Sending to Laravel: ${url}`)
     console.log(`[Payments API POST] Token: ${token.substring(0, 20)}...`)
