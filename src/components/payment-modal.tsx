@@ -38,25 +38,27 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
   const [cardName, setCardName] = useState("")
   const [expiryDate, setExpiryDate] = useState("")
   const [cvv, setCvv] = useState("")
-  const [bankAccount, setBankAccount] = useState("")
   const [accountName, setAccountName] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
 
   const resetForm = () => {
     setCardNumber("")
     setCardName("")
     setExpiryDate("")
     setCvv("")
-    setBankAccount("")
     setAccountName("")
     setPaymentMethod("card")
     setError("")
     setSuccess(false)
+    setImageFile(null)
   }
+
 
   const handleClose = () => {
     resetForm()
     onOpenChange(false)
   }
+
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\s/g, "")
@@ -85,24 +87,6 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
 
     try {
       const token = localStorage.getItem("token")
-
-      // Validate fields based on payment method
-      if (paymentMethod === "card") {
-        if (!cardNumber || !cardName || !expiryDate || !cvv) {
-          throw new Error("Please fill in all card details")
-        }
-        if (cardNumber.replace(/\s/g, "").length !== 16) {
-          throw new Error("Please enter a valid 16-digit card number")
-        }
-        if (cvv.length !== 3 && cvv.length !== 4) {
-          throw new Error("Please enter a valid CVV")
-        }
-      } else if (paymentMethod === "bank") {
-        if (!bankAccount || !accountName) {
-          throw new Error("Please fill in all bank details")
-        }
-      }
-
       const response = await fetch("/api/payments", {
         method: "POST",
         headers: {
@@ -116,15 +100,10 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
           payment_details:
             paymentMethod === "card"
               ? {
-                  card_number: cardNumber.replace(/\s/g, "").substring(12),
-                  card_name: cardName,
-                }
-              : paymentMethod === "bank"
-                ? {
-                    account_number: bankAccount.substring(bankAccount.length - 4),
-                    account_name: accountName,
-                  }
-                : {},
+                card_number: cardNumber.replace(/\s/g, "").substring(12),
+                card_name: cardName,
+              }
+              : {},
         }),
       })
 
@@ -196,28 +175,6 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
               <Label>Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                 <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <CreditCard className="h-5 w-5" />
-                    <div>
-                      <p className="font-medium">Credit/Debit Card</p>
-                      <p className="text-xs text-muted-foreground">Pay with your card</p>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors">
-                  <RadioGroupItem value="bank" id="bank" />
-                  <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <Building2 className="h-5 w-5" />
-                    <div>
-                      <p className="font-medium">Bank Transfer</p>
-                      <p className="text-xs text-muted-foreground">Transfer from your bank</p>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors">
                   <RadioGroupItem value="ewallet" id="ewallet" />
                   <Label htmlFor="ewallet" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Wallet className="h-5 w-5" />
@@ -229,87 +186,6 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
                 </div>
               </RadioGroup>
             </div>
-
-            {/* Payment Details Forms */}
-            {paymentMethod === "card" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                    maxLength={19}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cardName">Cardholder Name</Label>
-                  <Input id="cardName" placeholder="John Doe" value={cardName} onChange={(e) => setCardName(e.target.value)} required />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      placeholder="MM/YY"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-                      maxLength={5}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      placeholder="123"
-                      type="password"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").substring(0, 4))}
-                      maxLength={4}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === "bank" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="accountName">Account Name</Label>
-                  <Input id="accountName" placeholder="John Doe" value={accountName} onChange={(e) => setAccountName(e.target.value)} required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bankAccount">Account Number</Label>
-                  <Input
-                    id="bankAccount"
-                    placeholder="1234567890"
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ""))}
-                    required
-                  />
-                </div>
-
-                <Card className="p-3 bg-blue-50 border-blue-200">
-                  <p className="text-sm text-blue-800">
-                    <strong>Bank Details:</strong>
-                    <br />
-                    Bank Name: Philippine National Bank
-                    <br />
-                    Account Name: ERB Cash Loan Inc.
-                    <br />
-                    Account Number: 1234-5678-9012
-                  </p>
-                </Card>
-              </div>
-            )}
 
             {paymentMethod === "ewallet" && (
               <div className="space-y-4">
@@ -328,6 +204,33 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
                 </Card>
               </div>
             )}
+
+            {/* Upload Image */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentImage">Upload Payment Proof</Label>
+              <Input
+                id="paymentImage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+
+                  if (file) {
+                    const maxSizeMB = 10
+                    const maxSizeBytes = maxSizeMB * 1024 * 1024
+
+                    if (file.size > maxSizeBytes) {
+                      alert(`File size must not exceed ${maxSizeMB}MB`)
+                      e.target.value = "" // reset file input
+                      setImageFile(null)
+                      return
+                    }
+                  }
+
+                  setImageFile(file)
+                }}
+              />
+            </div>
 
             {error && (
               <Card className="p-3 border-destructive/30 bg-destructive/5">

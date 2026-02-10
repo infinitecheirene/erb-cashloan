@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    // Get token from HTTP-only cookie
+    const cookieStore = await cookies()
+    let token = cookieStore.get('token')?.value;
 
+    // If no token in cookies, try Authorization header
     if (!token) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.replace('Bearer ', '');
+      }
     }
 
-    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const laravelUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     const response = await fetch(`${laravelUrl}/api/auth/me`, {
       method: 'GET',

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/auth-context"
 import { PaymentModal } from "@/components/payment-modal"
-import { AlertCircle, CheckCircle2, Clock, CreditCard, DollarSign, Calendar } from "lucide-react"
+import { AlertCircle, CheckCircle2, Clock, CreditCard, DollarSign, Calendar, ChevronRight } from "lucide-react"
 
 interface Payment {
   id: number
@@ -59,7 +59,6 @@ export default function PaymentsPage() {
         fetch("/api/payments?type=overdue", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        // Fetch active loans - FIXED: Changed from /api/borrowers/payments to /api/loans
         fetch("/api/loans?status=active", {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -72,15 +71,12 @@ export default function PaymentsPage() {
       const upcoming = await upcomingRes.json()
       const overdue = await overdueRes.json()
 
-      // Directly extract the array from Laravel paginated response
       setUpcomingPayments(Array.isArray(upcoming.payments?.data) ? upcoming.payments.data : [])
       setOverduePayments(Array.isArray(overdue.payments?.data) ? overdue.payments.data : [])
 
-      // Active loans - FIXED: Better handling of different response formats
       if (loansRes.ok) {
         const loansData = await loansRes.json()
 
-        // Handle different possible response structures
         const loans = Array.isArray(loansData.loans?.data)
           ? loansData.loans.data
           : Array.isArray(loansData.loans)
@@ -89,7 +85,6 @@ export default function PaymentsPage() {
               ? loansData.data
               : []
 
-        // Filter for active loans (in case the API returns all loans)
         const active = loans.filter((loan: Loan) => loan.status === "active")
         setActiveLoans(active)
       }
@@ -101,29 +96,27 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
-    if (!authenticated && !authLoading) {
-      router.push("/")
-      return
-    }
+   
 
     if (authenticated) {
       fetchPayments()
     }
   }, [authenticated, authLoading, router])
 
-  const handlePayClick = (payment: Payment) => {
+  const handlePayClick = (payment: Payment, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click when clicking pay button
     setSelectedPayment(payment)
     setPaymentModalOpen(true)
   }
 
-  const handleMakePaymentForLoan = (loan: Loan) => {
-    // Calculate monthly payment
+  const handleMakePaymentForLoan = (loan: Loan, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click when clicking pay button
+    
     const monthlyPayment =
       loan.monthly_payment ||
       loan.next_payment_amount ||
       (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2)
 
-    // Create a payment object from the loan
     const payment: Payment = {
       id: loan.id,
       amount: monthlyPayment,
@@ -139,8 +132,13 @@ export default function PaymentsPage() {
     setPaymentModalOpen(true)
   }
 
+  const handleLoanCardClick = (loanId: number) => {
+    console.log("Navigating to loan:", loanId)
+    // Use window.location for reliable navigation
+    window.location.href = `/borrower/payments/${loanId}/history/`
+  }
+
   const handlePaymentSuccess = () => {
-    // Refresh the payments list
     setLoading(true)
     fetchPayments()
   }
@@ -151,10 +149,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-
-      {/* Main Content */}
       <div className="flex-1 lg:ml-0">
-        {/* Add padding for mobile header */}
         <div className="lg:hidden h-16" />
 
         <header className="border-b border-border bg-card">
@@ -210,12 +205,17 @@ export default function PaymentsPage() {
                       (parseFloat(loan.outstanding_balance || loan.principal_amount || loan.amount) / loan.term_months).toFixed(2)
 
                     return (
-                      <Card key={loan.id} className="p-4 sm:p-6 border-green-200 bg-green-50/30">
+                      <Card 
+                        key={loan.id} 
+                        className="p-4 sm:p-6 border-green-200 bg-green-50/30 cursor-pointer hover:shadow-lg transition-shadow"
+                        onClick={() => handleLoanCardClick(loan.id)}
+                      >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-2 flex-wrap">
                               <Badge className="bg-green-100 text-green-800 border-green-300">Active</Badge>
                               <span className="text-sm text-muted-foreground">Loan {loan.loan_number}</span>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto sm:ml-0" />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
@@ -267,7 +267,10 @@ export default function PaymentsPage() {
                             )}
                           </div>
 
-                          <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700" onClick={() => handleMakePaymentForLoan(loan)}>
+                          <Button 
+                            className="w-full sm:w-auto bg-green-600 hover:bg-green-700" 
+                            onClick={(e) => handleMakePaymentForLoan(loan, e)}
+                          >
                             <CreditCard className="h-4 w-4 mr-2" />
                             Make Payment
                           </Button>
@@ -306,7 +309,7 @@ export default function PaymentsPage() {
                             })}
                           </p>
                         </div>
-                        <Button className="w-full sm:w-auto" onClick={() => handlePayClick(payment)}>
+                        <Button className="w-full sm:w-auto" onClick={(e) => handlePayClick(payment, e)}>
                           Pay Now
                         </Button>
                       </div>
@@ -346,7 +349,7 @@ export default function PaymentsPage() {
                             })}
                           </p>
                         </div>
-                        <Button variant="destructive" className="w-full sm:w-auto" onClick={() => handlePayClick(payment)}>
+                        <Button variant="destructive" className="w-full sm:w-auto" onClick={(e) => handlePayClick(payment, e)}>
                           Pay Immediately
                         </Button>
                       </div>

@@ -127,7 +127,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUserStorage(data.user);
       setUserState(data.user);
-      router.push('/login');
     } catch (error) {
       throw error;
     }

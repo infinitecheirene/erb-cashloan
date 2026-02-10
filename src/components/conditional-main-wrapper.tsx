@@ -11,7 +11,7 @@ export function ConditionalMainWrapper({ children }: ConditionalMainWrapperProps
   const pathname = usePathname()
 
   // Public paths that should not have sidebar spacing
-  const publicPaths = ['/', '/login', '/register', '/about', '/contact', '/loans']
+  const publicPaths = ['/', '/login', '/register', '/about', '/contact', '/loans', '/settings']
   const isPublicPath = publicPaths.includes(pathname || '')
 
   if (isPublicPath) {
