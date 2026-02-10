@@ -773,10 +773,10 @@ const LoansManagementPage = () => {
         <div className="min-h-screen">
             <main className="min-h-screen bg-white">
                 <header className="border-b border-border bg-card sticky top-16 lg:top-0 z-40">
-                    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+                    <div className="w-full flex flex-col px-4 sm:px-6 py-4 justify-between">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-primary">Loan Management</h1>
+                                <h1 className="text-3xl font-bold leading-tight text-primary">Loan Management</h1>
                                 <p className="text-sm sm:text-base text-muted-foreground mt-1">
                                     Centralized administration of loan applications and accounts
                                 </p>

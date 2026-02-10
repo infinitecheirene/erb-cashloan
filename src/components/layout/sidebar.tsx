@@ -17,6 +17,7 @@ import {
   User,
   CreditCard,
   DollarSign,
+  House
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,7 +27,7 @@ const navigationByRole = {
     {
       name: "Home",
       href: "/",
-      icon: LayoutDashboard,
+      icon: House,
     },
     {
       name: "Dashboard",
@@ -53,7 +54,7 @@ const navigationByRole = {
     {
       name: "Home",
       href: "/",
-      icon: LayoutDashboard,
+      icon: House,
     },
     {
       name: "Dashboard",
@@ -85,7 +86,7 @@ const navigationByRole = {
     {
       name: "Home",
       href: "/",
-      icon: LayoutDashboard,
+      icon: House,
     },
     {
       name: "Dashboard",

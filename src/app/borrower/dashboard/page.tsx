@@ -136,10 +136,16 @@ export default function BorrowerDashboard() {
                 created_at: u.created_at,
             })
 
-            // Fetch loans for authenticated user via new API
-            const loansRes = await fetch('/api/borrowers/me/loans', {
-                headers: { Authorization: `Bearer ${token}` },
-            })
+            const loansRes = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/borrowers/${u.id}/loans`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json",
+                    },
+                }
+            );
+
             if (!loansRes.ok) throw new Error("Failed to fetch loans")
             const loansData = await loansRes.json()
             const loanList: Loan[] = loansData.loans || []
@@ -234,28 +240,32 @@ export default function BorrowerDashboard() {
                 <div className="lg:hidden h-16" />
 
                 {/* Profile Header */}
-                <header className=" border-b border-border bg-card">
+                <header className="border-b border-border bg-card sticky top-16 lg:top-0 z-40">
                     <div className="w-full flex flex-col px-4 sm:px-6 py-4 justify-between">
-                        <h2 className="text-2xl font-semibold leading-tight">{user.firstName} {user.lastName}</h2>
-                        <span className="text-sm text-muted-foreground">Member since {memberSinceMonth} {memberSinceYear}</span>
-                        <div className="block lg:hidden border border-t my-2" />
-                        <div className="flex justify-between">
-                            <div className="flex flex-col lg:flex-row">
-                                <div>
-                                    <Mail className="inline-block h-4 w-4 mr-1 text-gray-500" />
-                                    <span className="text-sm text-muted-foreground">{user.email}</span>
-                                </div>
-                                <div>
-                                    <Phone className="inline-block h-4 w-4 mr-1 lg:ml-4 text-gray-500" />
-                                    <span className="text-sm text-muted-foreground">{user.phone || "N/A"}</span>
-                                </div>
-                                <div>
-                                    <MapPin className="inline-block h-4 w-4 mr-1 lg:ml-4 text-gray-500" />
-                                    <span className="text-sm text-muted-foreground">{user.city || "N/A"}, {user.postalCode || "N/A"}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <h2 className="text-3xl font-bold leading-tight mt-1 text-primary">{user.firstName} {user.lastName}</h2>
+                                <span className="text-sm text-muted-foreground">Member since {memberSinceMonth} {memberSinceYear}</span>
+                                <div className="block lg:hidden border border-t my-2" />
+
+                                <div className="flex justify-between">
+                                    <div className="flex flex-col lg:flex-row">
+                                        <div>
+                                            <Mail className="inline-block h-4 w-4 mr-1 text-gray-500" />
+                                            <span className="text-sm text-muted-foreground">{user.email}</span>
+                                        </div>
+                                        <div>
+                                            <Phone className="inline-block h-4 w-4 mr-1 lg:ml-4 text-gray-500" />
+                                            <span className="text-sm text-muted-foreground">{user.phone || "N/A"}</span>
+                                        </div>
+                                        <div>
+                                            <MapPin className="inline-block h-4 w-4 mr-1 lg:ml-4 text-gray-500" />
+                                            <span className="text-sm text-muted-foreground">{user.city || "N/A"}, {user.postalCode || "N/A"}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div>
+                            <div className="flex items-center gap-2 sm:gap-3">
                                 <Button>
                                     Apply New Loan
                                 </Button>
