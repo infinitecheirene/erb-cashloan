@@ -1,16 +1,12 @@
-import React from "react"
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { AuthProvider } from "@/components/auth-context"
-import { RoleBasedSidebar } from "@/components/layout/sidebar"
-import "./globals.css"
-import { Toaster } from "sonner"
-import { Navbar } from "@/components/layout/navbar"
-import { ConditionalMainWrapper } from "@/components/conditional-main-wrapper"
-
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+import React from "react";
+import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { AuthProvider } from "@/components/auth-context";
+import { RoleBasedSidebar } from "@/components/layout/sidebar";
+import "./globals.css";
+import { Toaster } from "sonner";
+import { Navbar } from "@/components/layout/navbar";
+import { ConditionalMainWrapper } from "@/components/conditional-main-wrapper";
 
 export const metadata: Metadata = {
   title: "LoanHub - Loan Management System",
@@ -18,31 +14,20 @@ export const metadata: Metadata = {
   generator: "v0.app",
   icons: {
     icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
+      { url: "/icon-light-32x32.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon.svg", type: "image/svg+xml" },
     ],
     apple: "/apple-icon.png",
   },
-}
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <AuthProvider>
           <Toaster richColors position="top-right" />
           <div className="min-h-screen bg-background">
@@ -56,5 +41,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

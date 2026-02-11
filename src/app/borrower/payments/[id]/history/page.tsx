@@ -18,19 +18,7 @@ import {
     XCircle,
     Printer
 } from "lucide-react"
-
-interface Payment {
-    id: number
-    amount: string
-    due_date: string
-    paid_date?: string
-    status: string // 'paid', 'pending', 'overdue', 'missed'
-    payment_number: number
-    loan?: {
-        loan_number: string
-        id: number
-    }
-}
+import type { Payment } from "@/types/payment"
 
 interface Loan {
     id: number
@@ -480,16 +468,20 @@ export default function PaymentHistoryPage() {
                                     const startDate = new Date(firstActivePayment?.due_date);
 
                                     for (let i = 0; i < paidCount; i++) {
-                                        const payment = {
-                                            id: `placeholder-${i}`,
+                                        const payment = paymentSchedule.payments[i] || {
+                                            id: paymentSchedule.loan.id * 1000 + i, // numeric placeholder ID
                                             payment_number: i + 1,
                                             amount: amount,
                                             status: 'paid',
                                             due_date: new Date(
                                                 startDate.getFullYear(),
                                                 startDate.getMonth() + i,
-                                                startDate.getDate(),
-                                            ), // or calculate based on loan start };
+                                                startDate.getDate()
+                                            ).toISOString(),
+                                            loan: {
+                                                loan_number: paymentSchedule.loan.loan_number,
+                                                id: paymentSchedule.loan.id,
+                                            },
                                         };
 
                                         paymentCards.push(
@@ -546,18 +538,17 @@ export default function PaymentHistoryPage() {
                                     console.log("paymentCards: ", paymentSchedule.payments.length);
                                     // Start at the first unpaid payment index (paidCount), 
                                     // and loop until the end of the loan term
-                                    for (let i = paidCount; i <= paymentSchedule.loan.term_months; i++) {
-
+                                    for (let i = paidCount; i < paymentSchedule.loan.term_months; i++) {
                                         const payment = paymentSchedule.payments[i] || {
-                                            id: `placeholder-${i}`,
+                                            id: paymentSchedule.loan.id * 1000 + i,
                                             payment_number: i + 1,
-                                            amount: 0,
-                                            status: 'pending',
-                                            due_date: new Date(
-                                                loanStartDate.getFullYear(),
-                                                loanStartDate.getMonth() + i,
-                                                loanStartDate.getDate(),
-                                            ), // or calculate based on loan start };
+                                            amount: amount || "0.00",
+                                            status: "pending",
+                                            due_date: new Date(loanStartDate.getFullYear(), loanStartDate.getMonth() + i, loanStartDate.getDate()).toISOString(),
+                                            loan: {
+                                                loan_number: paymentSchedule.loan.loan_number,
+                                                id: paymentSchedule.loan.id,
+                                            },
                                         };
 
                                         paymentCards.push(

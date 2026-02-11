@@ -6,19 +6,7 @@ import ProfilePicture from "@/components/settings/ProfilePicture"
 import PersonalInformation from "@/components/settings/PersonalInformation"
 import PasswordChange from "@/components/settings/ChangePassword"
 import { Settings, User, Lock, Loader2, CheckCircle, AlertTriangle } from "lucide-react"
-
-interface ProfileData {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  profileImageUrl: string
-  address?: string
-  city?: string
-  state?: string
-  postalCode?: string
-  country?: string
-}
+import type { ProfileData } from "@/types/profile"
 
 export default function AdminSettingsPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null)

@@ -6,14 +6,7 @@ import { Label } from "@/components/ui/label"
 import { User, Mail, Phone, Loader2, MapPin } from "lucide-react"
 import { Button } from "../ui/button"
 import { toast } from "sonner"
-
-interface ProfileData {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  address?: string
-}
+import type { ProfileData } from "@/types/profile"
 
 interface PersonalInformationProps {
   profileData: ProfileData

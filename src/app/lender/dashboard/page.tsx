@@ -312,10 +312,19 @@ export default function LenderDashboard() {
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
+                    plugins: {
+                      legend: { position: "top" },
+                    },
                     scales: {
-                      x: { grid: { display: false }, title: { display: true, text: 'Month' } },
-                      y: { grid: { drawBorder: false }, title: { display: true, text: 'Number of Types' } }
+                      x: {
+                        grid: { display: false },
+                        title: { display: true, text: "Month" },
+                      },
+                      y: {
+                        grid: { display: true },
+                        border: { display: false }, 
+                        title: { display: true, text: "Number of Types" },
+                      },
                     },
                   }}
                 />

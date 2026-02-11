@@ -319,8 +319,18 @@ export default function AdminDashboard() {
                                     options={{
                                         responsive: true,
                                         maintainAspectRatio: false,
-                                        plugins: { legend: { position: 'top' } },
-                                        scales: { x: { grid: { display: false } }, y: { grid: { drawBorder: false } } },
+                                        plugins: {
+                                            legend: { position: "top" },
+                                        },
+                                        scales: {
+                                            x: {
+                                                grid: { display: false },
+                                            },
+                                            y: {
+                                                grid: { display: true }, // keep grid lines if you want
+                                                border: { display: false }, // replaces drawBorder
+                                            },
+                                        },
                                     }}
                                 />
                             </div>
