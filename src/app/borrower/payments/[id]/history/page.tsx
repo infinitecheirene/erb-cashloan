@@ -167,7 +167,7 @@ export default function PaymentHistoryPage() {
                 // Fallback to generated schedule
                 const generatedPayments = generatePaymentSchedule(loan)
                 const updatedPayments = recomputeStatuses(generatedPayments)
-                
+
                 setPaymentSchedule({
                     loan,
                     payments: updatedPayments,
@@ -467,72 +467,161 @@ export default function PaymentHistoryPage() {
                             </div>
 
                             {/* Payment Schedule Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {paymentSchedule.payments.map((payment) => (
-                                    <Card
-                                        key={payment.id}
-                                        className={`p-4 print-payment-card ${payment.status !== 'paid' ? 'cursor-pointer' : 'cursor-default'} transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
-                                        onClick={() => handlePayClick(payment)}
-                                    >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground font-medium">
-                                                    Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
-                                                </p>
-                                                <p className="text-lg font-bold mt-1">
-                                                    ₱{parseFloat(payment.amount).toLocaleString("en-US", {
-                                                        minimumFractionDigits: 2,
-                                                    })}
-                                                </p>
-                                            </div>
-                                            {getStatusBadge(payment.status)}
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {(() => {
 
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                <span>
-                                                    Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
-                                                        month: "short",
-                                                        day: "numeric",
-                                                        year: "numeric",
-                                                    })}
-                                                </span>
-                                            </div>
+                                    const paidCount = paymentSchedule.payments.filter(p => p.status === 'paid').length;
+                                    const amount = paymentSchedule.payments[0]?.amount;
 
-                                            {payment.paid_date && (
-                                                <div className="flex items-center gap-2 text-green-600">
-                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                    <span>
-                                                        Paid: {new Date(payment.paid_date).toLocaleDateString("en-US", {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "numeric",
-                                                        })}
-                                                    </span>
+                                    const paymentCards = [];
+
+                                    // Anchor on the first active payment’s due_date
+                                    const firstActivePayment = paymentSchedule.payments[paidCount - 1];
+                                    const startDate = new Date(firstActivePayment?.due_date);
+
+                                    for (let i = 0; i < paidCount; i++) {
+                                        const payment[i] = {
+                                            id: `placeholder-${i}`,
+                                            payment_number: i + 1,
+                                            amount: amount,
+                                            status: 'paid',
+                                            due_date: new Date(
+                                                startDate.getFullYear(),
+                                                startDate.getMonth() + i,
+                                                startDate.getDate(),
+                                            ), // or calculate based on loan start };
+                                        };
+
+                                        paymentCards.push(
+                                            <Card
+                                                key={payment.id}
+                                                className={`p-4 print-payment-card ${payment.status !== 'paid' ? 'cursor-pointer' : 'cursor-default'} transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
+                                                onClick={() => handlePayClick(payment)}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground font-medium">
+                                                            Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
+                                                        </p>
+                                                        <p className="text-lg font-bold mt-1">
+                                                            ₱{parseFloat(payment.amount).toLocaleString("en-US", {
+                                                                minimumFractionDigits: 2,
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                    {getStatusBadge(payment.status)}
                                                 </div>
-                                            )}
 
-                                            {/* Show Pay Now button for pending, overdue, and missed */}
-                                            {payment.status !== 'paid' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant={payment.status === 'overdue' || payment.status === 'missed' ? 'destructive' : 'default'}
-                                                    className="w-full mt-2 no-print"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handlePayClick(payment)
-                                                    }}
-                                                >
-                                                    <CreditCard className="h-3.5 w-3.5 mr-1" />
-                                                    Pay Now
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </Card>
-                                ))}
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                                        <Calendar className="h-3.5 w-3.5" />
+                                                        <span>
+                                                            Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                                year: "numeric",
+                                                            })}
+                                                        </span>
+                                                    </div>
+
+                                                </div>
+                                            </Card>
+                                        );
+                                    }
+
+                                    return paymentCards;
+                                })()}
+
                             </div>
+                            {/* Pending Payments Section */}
+                            {(() => {
+                                const paidCount = paymentSchedule.payments.filter(p => p.status === 'paid').length;
+                                const pendingCount = paymentSchedule.loan.term_months - paidCount;
 
+                                if (pendingCount > 0) {
+                                    const paymentCards = [];
+                                    const amount = paymentSchedule.payments[0]?.amount;
+                                    const loanStartDate = new Date(paymentSchedule.payments[0]?.due_date);
+
+                                    console.log("paymentCards: ", paymentSchedule.payments.length);
+                                    // Start at the first unpaid payment index (paidCount), 
+                                    // and loop until the end of the loan term
+                                    for (let i = paidCount; i <= paymentSchedule.loan.term_months; i++) {
+
+                                        const payment = paymentSchedule.payments[i] || {
+                                            id: `placeholder-${i}`,
+                                            payment_number: i + 1,
+                                            amount: 0,
+                                            status: 'pending',
+                                            due_date: new Date(
+                                                loanStartDate.getFullYear(),
+                                                loanStartDate.getMonth() + i,
+                                                loanStartDate.getDate(),
+                                            ), // or calculate based on loan start };
+                                        };
+
+                                        paymentCards.push(
+                                            <Card
+                                                key={payment.id}
+                                                className={`p-4 print-payment-card cursor-pointer transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
+                                                onClick={() => handlePayClick(payment)}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground font-medium">
+                                                            Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
+                                                        </p>
+                                                        <p className="text-lg font-bold mt-1">
+                                                            ₱{parseFloat(amount).toLocaleString("en-US", {
+                                                                minimumFractionDigits: 2,
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                    {getStatusBadge(payment.status)}
+                                                </div>
+
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-center justify-end  gap-2 text-muted-foreground">
+                                                        <Calendar className="h-3.5 w-3.5" />
+                                                        <span>
+                                                            Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                                year: "numeric",
+                                                            })}
+                                                        </span>
+                                                        {i === paidCount ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant={payment.status === 'overdue' || payment.status === 'missed' ? 'destructive' : 'default'}
+                                                                className="w-32 mt-2 no-print"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handlePayClick(payment);
+                                                                }}
+                                                            >
+                                                                <CreditCard className="h-3.5 w-2.5 mr-1" />
+                                                                Pay Now
+                                                            </Button>
+                                                        ) : ('')}
+
+                                                    </div>
+
+
+                                                </div>
+                                            </Card>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {paymentCards}
+                                        </div>
+                                    );
+                                }
+
+                                return null;
+                            })()}
                             {/* Summary Footer */}
                             <div className="mt-6 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                                 <div>
@@ -544,7 +633,11 @@ export default function PaymentHistoryPage() {
                                 <div>
                                     <p className="text-muted-foreground mb-1">Pending</p>
                                     <p className="font-semibold text-blue-600">
-                                        {paymentSchedule.payments.filter(p => p.status === 'pending').length}
+                                        {(() => {
+                                            const paidCount = paymentSchedule.payments.filter(p => p.status === 'paid').length;
+                                            const pendingCount = paymentSchedule.loan.term_months - paidCount;
+                                            return pendingCount;
+                                        })()}
                                     </p>
                                 </div>
                                 <div>
@@ -562,73 +655,8 @@ export default function PaymentHistoryPage() {
                             </div>
                         </Card>
 
-                        {/* Pending Payments Section */}
-                        {(() => {
-                            const paidCount = paymentSchedule.payments.filter(p => p.status === 'paid').length
-                            const pendingCount = paymentSchedule.loan.term_months - paidCount
-                            const unpaidPayments = paymentSchedule.payments.filter(p => p.status !== 'paid')
-                            
-                            return pendingCount > 0 && (
-                                <Card className="p-6 mt-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Clock className="h-5 w-5 text-blue-600" />
-                                        <h3 className="text-lg font-semibold">Pending Payments</h3>
-                                        <Badge className="bg-blue-100 text-blue-800 border-blue-300">
-                                            {pendingCount}
-                                        </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {unpaidPayments.map((payment) => (
-                                            <Card
-                                                key={payment.id}
-                                                className={`p-4 print-payment-card cursor-pointer transition-all hover:shadow-md ${getStatusColor(payment.status)}`}
-                                                onClick={() => handlePayClick(payment)}
-                                            >
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground font-medium">
-                                                            Payment {payment.payment_number} of {paymentSchedule.loan.term_months}
-                                                        </p>
-                                                        <p className="text-lg font-bold mt-1">
-                                                            ₱{parseFloat(payment.amount).toLocaleString("en-US", {
-                                                                minimumFractionDigits: 2,
-                                                            })}
-                                                        </p>
-                                                    </div>
-                                                   pending
-                                                </div>
 
-                                                <div className="space-y-2 text-sm">
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <Calendar className="h-3.5 w-3.5" />
-                                                        <span>
-                                                            Due: {new Date(payment.due_date).toLocaleDateString("en-US", {
-                                                                month: "short",
-                                                                day: "numeric",
-                                                                year: "numeric",
-                                                            })}
-                                                        </span>
-                                                    </div>
 
-                                                    <Button
-                                                        size="sm"
-                                                        variant={payment.status === 'overdue' || payment.status === 'missed' ? 'destructive' : 'default'}
-                                                        className="w-full mt-2 no-print"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handlePayClick(payment)
-                                                        }}
-                                                    >
-                                                        <CreditCard className="h-3.5 w-3.5 mr-1" />
-                                                        Pay Now
-                                                    </Button>
-                                                </div>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </Card>
-                            )
-                        })()}
                     </main>
                 </div>
 
