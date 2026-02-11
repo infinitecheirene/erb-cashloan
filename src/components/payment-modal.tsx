@@ -87,16 +87,6 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
 
     try {
       const token = localStorage.getItem("token")
-
-      // CRITICAL FIX: Use loan.id, not payment.id
-      const loanId = payment?.loan?.id
-
-      if (!loanId) {
-        throw new Error("Invalid payment - missing loan information")
-      }
-
-      console.log("Submitting payment for loan:", loanId)
-
       const response = await fetch("/api/payments", {
         method: "POST",
         headers: {
@@ -104,7 +94,7 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          payment_id: loanId, // This is actually the LOAN ID that backend expects
+          payment_id: payment?.id,
           amount: formatAmount(payment?.amount),
           payment_method: paymentMethod,
           payment_details:
@@ -119,12 +109,8 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Payment error:", errorData)
         throw new Error(errorData.message || "Payment failed")
       }
-
-      const result = await response.json()
-      console.log("Payment success:", result)
 
       setSuccess(true)
 
@@ -134,7 +120,6 @@ export function PaymentModal({ payment, open, onOpenChange, onSuccess }: Payment
         handleClose()
       }, 2000)
     } catch (err) {
-      console.error("Payment submission error:", err)
       setError(err instanceof Error ? err.message : "Payment failed. Please try again.")
     } finally {
       setLoading(false)

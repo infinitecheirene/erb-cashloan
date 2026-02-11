@@ -480,7 +480,7 @@ export default function PaymentHistoryPage() {
                                     const startDate = new Date(firstActivePayment?.due_date);
 
                                     for (let i = 0; i < paidCount; i++) {
-                                        const payment[i] = {
+                                        const payment = {
                                             id: `placeholder-${i}`,
                                             payment_number: i + 1,
                                             amount: amount,
