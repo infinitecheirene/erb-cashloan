@@ -139,7 +139,6 @@ export default function LenderDashboard() {
     [loansWithBorrowers, repaidLoans]
   );
 
-  // --- Loan type counts & total volume per type ---
   const loanTypeCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     loansWithBorrowers.forEach(l => {
@@ -197,7 +196,6 @@ export default function LenderDashboard() {
       ],
     };
   }, [loansWithBorrowers]);
-
 
   const loanVolumeData = {
     labels: Object.keys(loanTypeVolumes),
